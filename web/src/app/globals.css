@@ -328,3 +328,23 @@
 .group:hover .group-hover\:animate-check {
   animation: check-bounce 0.4s ease-in-out;
 }
+
+/* Sidebar Collapse Animations */
+@keyframes logo-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15) rotate(5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes icon-slide-in {
+  0% { transform: translateX(-10px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+.animate-logo-pop {
+  animation: logo-pop 0.4s ease-out;
+}
+
+.animate-icon-slide {
+  animation: icon-slide-in 0.3s ease-out;
+}

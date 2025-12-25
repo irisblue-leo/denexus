@@ -332,63 +332,46 @@ export default function Sidebar({
       }`}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-border">
-        {!isCollapsed && (
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
-            <span className="text-lg font-bold gradient-text">Denexus</span>
-          </Link>
-        )}
-        {isCollapsed && (
-          <Link href="/" className="mx-auto">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">D</span>
-            </div>
-          </Link>
-        )}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-border overflow-hidden">
+        <Link href="/" className={`flex items-center gap-2 transition-all duration-300 ${isCollapsed ? "mx-auto" : ""}`}>
+          <div className={`w-8 h-8 bg-gradient-to-br from-primary-500 to-accent-500 rounded-lg flex items-center justify-center transition-transform duration-300 hover:scale-110 hover:rotate-3 ${isCollapsed ? "animate-logo-pop" : ""}`}>
+            <span className="text-white font-bold text-sm">D</span>
+          </div>
+          <span className={`text-lg font-bold gradient-text whitespace-nowrap transition-all duration-300 ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>Denexus</span>
+        </Link>
       </div>
 
       {/* Toggle Button */}
       <button
         onClick={onToggle}
-        className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-secondary transition-colors"
+        className="absolute -right-3 top-20 w-6 h-6 bg-white dark:bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-secondary hover:scale-110 active:scale-95 transition-all duration-200 group"
       >
-        {isCollapsed ? (
-          <ChevronRight className="w-3 h-3 text-muted-foreground" />
-        ) : (
-          <ChevronLeft className="w-3 h-3 text-muted-foreground" />
-        )}
+        <ChevronLeft className={`w-3 h-3 text-muted-foreground transition-transform duration-300 group-hover:text-primary-500 ${isCollapsed ? "rotate-180" : "rotate-0"}`} />
       </button>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4">
         {/* AI Video Section */}
         <div className="mb-6">
-          {!isCollapsed && (
-            <div className="px-4 mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {t("aiVideo")}
-              </span>
-            </div>
-          )}
+          <div className={`px-4 mb-2 overflow-hidden transition-all duration-300 ${isCollapsed ? "h-0 opacity-0" : "h-auto opacity-100"}`}>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+              {t("aiVideo")}
+            </span>
+          </div>
           <ul className="space-y-1 px-2">
             {aiVideoItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     isActive(item.href)
                       ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                       : "text-foreground hover:bg-secondary"
                   } ${isCollapsed ? "justify-center" : ""}`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
-                  {!isCollapsed && (
-                    <span className="text-sm font-medium truncate">{item.label}</span>
-                  )}
+                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-200 ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""} ${isCollapsed ? "scale-110" : "scale-100"}`} />
+                  <span className={`text-sm font-medium truncate whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100"}`}>{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -397,29 +380,25 @@ export default function Sidebar({
 
         {/* Influencer Cooperation Section */}
         <div className="mb-6">
-          {!isCollapsed && (
-            <div className="px-4 mb-2">
-              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                {t("influencerCooperation")}
-              </span>
-            </div>
-          )}
+          <div className={`px-4 mb-2 overflow-hidden transition-all duration-300 ${isCollapsed ? "h-0 opacity-0" : "h-auto opacity-100"}`}>
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider whitespace-nowrap">
+              {t("influencerCooperation")}
+            </span>
+          </div>
           <ul className="space-y-1 px-2">
             {influencerItems.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 ${
                     isActive(item.href)
                       ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                       : "text-foreground hover:bg-secondary"
                   } ${isCollapsed ? "justify-center" : ""}`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
-                  {!isCollapsed && (
-                    <span className="text-sm font-medium truncate">{item.label}</span>
-                  )}
+                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-all duration-200 ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""} ${isCollapsed ? "scale-110" : "scale-100"}`} />
+                  <span className={`text-sm font-medium truncate whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0 ml-0" : "w-auto opacity-100"}`}>{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -432,64 +411,60 @@ export default function Sidebar({
         {/* My Assets */}
         <Link
           href="/workspace/assets"
-          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 w-full ${
             isActive("/workspace/assets")
               ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
               : "text-foreground hover:bg-secondary"
           } ${isCollapsed ? "justify-center" : ""}`}
           title={isCollapsed ? t("assets") : undefined}
         >
-          <FolderOpen className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small ${isActive("/workspace/assets") ? "text-primary-600 dark:text-primary-400" : ""}`} />
-          {!isCollapsed && <span className="text-sm font-medium">{t("assets")}</span>}
+          <FolderOpen className={`w-5 h-5 flex-shrink-0 transition-all duration-200 group-hover:animate-bounce-small ${isActive("/workspace/assets") ? "text-primary-600 dark:text-primary-400" : ""} ${isCollapsed ? "scale-110" : "scale-100"}`} />
+          <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>{t("assets")}</span>
         </Link>
 
         {/* Contact Us */}
         <button
-          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all duration-200 w-full ${
             isCollapsed ? "justify-center" : ""
           }`}
           title={isCollapsed ? t("contactUs") : undefined}
         >
-          <Headphones className="w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-wiggle" />
-          {!isCollapsed && <span className="text-sm font-medium">{t("contactUs")}</span>}
+          <Headphones className={`w-5 h-5 flex-shrink-0 transition-all duration-200 group-hover:animate-wiggle ${isCollapsed ? "scale-110" : "scale-100"}`} />
+          <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>{t("contactUs")}</span>
         </button>
 
         {/* Buy Now */}
         <Link
           href="/workspace/buy"
-          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 w-full ${
             isActive("/workspace/buy")
               ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
               : "text-foreground hover:bg-secondary"
           } ${isCollapsed ? "justify-center" : ""}`}
           title={isCollapsed ? t("buyNow") : undefined}
         >
-          <ShoppingCart className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small ${isActive("/workspace/buy") ? "text-primary-600 dark:text-primary-400" : ""}`} />
-          {!isCollapsed && <span className="text-sm font-medium">{t("buyNow")}</span>}
+          <ShoppingCart className={`w-5 h-5 flex-shrink-0 transition-all duration-200 group-hover:animate-bounce-small ${isActive("/workspace/buy") ? "text-primary-600 dark:text-primary-400" : ""} ${isCollapsed ? "scale-110" : "scale-100"}`} />
+          <span className={`text-sm font-medium whitespace-nowrap transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>{t("buyNow")}</span>
         </Link>
 
         {/* User Profile with Menu */}
         <div className="relative">
           <button
             onClick={() => setShowUserMenu(!showUserMenu)}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-all w-full ${
+            className={`group flex items-center gap-3 px-3 py-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-all duration-200 w-full ${
               isCollapsed ? "justify-center" : ""
             }`}
           >
-            <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className={`w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center flex-shrink-0 transition-transform duration-200 group-hover:scale-105 ${isCollapsed ? "scale-110" : "scale-100"}`}>
               <User className="w-4 h-4 text-primary-600 dark:text-primary-400" />
             </div>
-            {!isCollapsed && (
-              <>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-medium text-foreground truncate">{truncatedName}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("remainingCredits")}: <span className="text-primary-600 dark:text-primary-400">{user?.credits ?? 0}</span>
-                  </p>
-                </div>
-                <MoreVertical className="w-4 h-4 text-muted-foreground" />
-              </>
-            )}
+            <div className={`flex-1 min-w-0 text-left transition-all duration-300 overflow-hidden ${isCollapsed ? "w-0 opacity-0" : "w-auto opacity-100"}`}>
+              <p className="text-sm font-medium text-foreground truncate whitespace-nowrap">{truncatedName}</p>
+              <p className="text-xs text-muted-foreground whitespace-nowrap">
+                {t("remainingCredits")}: <span className="text-primary-600 dark:text-primary-400">{user?.credits ?? 0}</span>
+              </p>
+            </div>
+            <MoreVertical className={`w-4 h-4 text-muted-foreground transition-all duration-300 ${isCollapsed ? "w-0 opacity-0" : "w-4 opacity-100"}`} />
           </button>
 
           {/* User Menu Dropdown */}

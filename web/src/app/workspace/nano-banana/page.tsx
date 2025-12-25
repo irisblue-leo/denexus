@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Sparkles, Loader2, X } from "lucide-react";
+import { Plus, Sparkles, Loader2, X, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TaskList from "@/components/workspace/TaskList";
 import AssetPickerModal from "@/components/workspace/AssetPickerModal";
@@ -20,8 +20,9 @@ export default function NanoBananaPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
   const [showAssetPicker, setShowAssetPicker] = useState(false);
+  const [polishing, setPolishing] = useState(false);
 
   // Calculate credits cost
   const calculateCost = () => {
@@ -29,15 +30,43 @@ export default function NanoBananaPage() {
   };
 
   const handleAssetSelect = (asset: { url: string; filename: string }) => {
-    // Add to images list, max 5 images
-    setUploadedImages((prev) => {
-      if (prev.length >= 5) return prev;
-      return [...prev, asset];
-    });
+    setUploadedImage(asset);
   };
 
-  const removeImage = (index: number) => {
-    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  const removeImage = () => {
+    setUploadedImage(null);
+  };
+
+  const handlePolishPrompt = async () => {
+    if (!prompt.trim() || polishing) return;
+
+    setPolishing(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/polish-prompt", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          imageUrl: uploadedImage?.url,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.polishedPrompt) {
+        setPrompt(data.polishedPrompt);
+      } else {
+        setError(data.error || t("polishFailed"));
+      }
+    } catch {
+      setError(t("networkError"));
+    } finally {
+      setPolishing(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -58,7 +87,7 @@ export default function NanoBananaPage() {
         body: JSON.stringify({
           prompt,
           quantity,
-          productImages: uploadedImages.map((img) => img.url),
+          productImages: uploadedImage ? [uploadedImage.url] : [],
         }),
       });
 
@@ -66,7 +95,7 @@ export default function NanoBananaPage() {
 
       if (data.success) {
         setPrompt("");
-        setUploadedImages([]);
+        setUploadedImage(null);
         setRefreshTrigger((prev) => prev + 1);
         refreshUser();
       } else {
@@ -96,27 +125,27 @@ export default function NanoBananaPage() {
             <p className="text-xs text-muted-foreground mb-3">{t("productImagesHintNano")}</p>
 
             <div className="flex flex-wrap gap-3">
-              {/* Uploaded Images */}
-              {uploadedImages.map((image, index) => (
-                <div key={index} className="relative group">
+              {/* Uploaded Image */}
+              {uploadedImage && (
+                <div className="relative group">
                   <div className="w-24 h-24 rounded-xl overflow-hidden border border-border">
                     <img
-                      src={image.url}
-                      alt={image.filename}
+                      src={uploadedImage.url}
+                      alt={uploadedImage.filename}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <button
-                    onClick={() => removeImage(index)}
+                    onClick={removeImage}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                   >
                     <X className="w-3 h-3" />
                   </button>
                 </div>
-              ))}
+              )}
 
               {/* Upload Button */}
-              {uploadedImages.length < 5 && (
+              {!uploadedImage && (
                 <button
                   onClick={() => setShowAssetPicker(true)}
                   className="w-24 h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer"
@@ -133,13 +162,29 @@ export default function NanoBananaPage() {
             <label className="block text-sm font-medium text-foreground mb-1">
               <span className="text-red-500">*</span> {t("prompt")}
             </label>
-            <p className="text-xs text-muted-foreground mb-2">{t("promptHint")}</p>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={t("promptPlaceholder")}
-              className="w-full h-48 px-4 py-3 bg-secondary/50 border border-border rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            />
+            <p className="text-xs text-muted-foreground mb-2">{t("promptHintNano")}</p>
+            <div className="relative">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={t("promptPlaceholderNano")}
+                className="w-full h-32 px-4 py-3 pb-10 bg-secondary/50 border border-border rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              />
+              {/* Polish Button */}
+              <button
+                onClick={handlePolishPrompt}
+                disabled={!prompt.trim() || polishing}
+                title={t("polishPrompt")}
+                className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              >
+                {polishing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Wand2 className="w-3.5 h-3.5" />
+                )}
+                {t("polish")}
+              </button>
+            </div>
           </div>
 
           {/* Quantity */}
