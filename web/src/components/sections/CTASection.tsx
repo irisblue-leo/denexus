@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { AnimatedSection } from "@/components/ui/AnimatedSection";
+import { ScrollReveal } from "@/components/ui/AnimatedSection";
 
 export default function CTASection() {
   const t = useTranslations("cta");
@@ -45,44 +45,36 @@ export default function CTASection() {
       {/* Morphing shape */}
       <div className="absolute bottom-10 left-1/4 w-24 h-24 bg-white/5 animate-morph" />
 
-      <div className="container-tight text-center relative">
-        <AnimatedSection animation="fade-up">
-          <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mb-4 leading-tight">
-            {t("title1")}
-            <br />
-            <span className="text-white/90">{t("title2")}</span>
-          </h2>
-        </AnimatedSection>
+      <ScrollReveal className="container-tight text-center relative">
+        <h2 className="text-2xl sm:text-3xl lg:text-5xl font-bold text-white mb-4 leading-tight">
+          {t("title1")}
+          <br />
+          <span className="text-white/90">{t("title2")}</span>
+        </h2>
 
-        <AnimatedSection animation="fade-up" delay={100}>
-          <p className="text-white/80 mb-8 max-w-xl mx-auto text-lg">
-            {t("description")}
-          </p>
-        </AnimatedSection>
+        <p className="text-white/80 mb-8 max-w-xl mx-auto text-lg">
+          {t("description")}
+        </p>
 
-        <AnimatedSection animation="scale-in" delay={200}>
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:bg-white/90 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 group"
-          >
-            {t("button")}
-            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </a>
-        </AnimatedSection>
+        <a
+          href="#"
+          className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-700 font-semibold rounded-xl hover:bg-white/90 transition-all duration-300 shadow-xl hover:shadow-2xl hover:-translate-y-1 group"
+        >
+          {t("button")}
+          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+        </a>
 
-        <AnimatedSection animation="fade-in" delay={400}>
-          <p className="text-white/60 text-sm mt-8 flex items-center justify-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-              {t("note").split("·")[0]}
-            </span>
-            <span>·</span>
-            <span>{t("note").split("·")[1]}</span>
-            <span>·</span>
-            <span>{t("note").split("·")[2]}</span>
-          </p>
-        </AnimatedSection>
-      </div>
+        <p className="text-white/60 text-sm mt-8 flex items-center justify-center gap-2 flex-wrap">
+          <span className="inline-flex items-center gap-1">
+            <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+            {t("note").split("·")[0]}
+          </span>
+          <span>·</span>
+          <span>{t("note").split("·")[1]}</span>
+          <span>·</span>
+          <span>{t("note").split("·")[2]}</span>
+        </p>
+      </ScrollReveal>
     </section>
   );
 }

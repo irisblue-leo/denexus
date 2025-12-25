@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Play, Zap, Users, TrendingUp, Sparkles, LogIn } from "lucide-react";
-import { AnimatedSection, AnimatedItem } from "@/components/ui/AnimatedSection";
+import { ScrollReveal } from "@/components/ui/AnimatedSection";
 import { HeroBackground } from "@/components/ui/AnimatedBackground";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -47,78 +47,68 @@ export default function HeroSection() {
         <div className="absolute top-1/2 left-10 w-12 h-12 bg-gradient-to-br from-primary-500/10 to-accent-500/10 rounded-lg animate-morph" />
       </div>
 
-      <div className="container-tight relative">
+      <ScrollReveal className="container-tight relative">
         <div className="text-center max-w-3xl mx-auto">
           {/* Badge */}
-          <AnimatedSection animation="fade-down" delay={0}>
-            <div className="inline-flex items-center gap-2 tag tag-primary mb-6 group cursor-pointer hover:scale-105 transition-transform animate-glow">
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-              <span className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
-              {t("badge")}
-            </div>
-          </AnimatedSection>
+          <div className="inline-flex items-center gap-2 tag tag-primary mb-6 group cursor-pointer hover:scale-105 transition-transform animate-glow">
+            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            <span className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
+            {t("badge")}
+          </div>
 
           {/* Title */}
-          <AnimatedSection animation="fade-up" delay={100}>
-            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
-              {t("title1")}
-              <br />
-              <span className="gradient-text bg-[length:200%_auto] animate-gradient">{t("title2")}</span>
-              <br />
-              {t("title3")}
-            </h1>
-          </AnimatedSection>
+          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
+            {t("title1")}
+            <br />
+            <span className="gradient-text bg-[length:200%_auto] animate-gradient">{t("title2")}</span>
+            <br />
+            {t("title3")}
+          </h1>
 
           {/* Description */}
-          <AnimatedSection animation="fade-up" delay={200}>
-            <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
-              {t("description")}
-            </p>
-          </AnimatedSection>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+            {t("description")}
+          </p>
 
           {/* CTAs */}
-          <AnimatedSection animation="fade-up" delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
-              <button
-                onClick={handleGetStarted}
-                className="btn-primary w-full sm:w-auto group relative overflow-hidden animate-glow"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  {tc("getStarted")}
-                  <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </button>
-              <a
-                href="#"
-                className="btn-outline w-full sm:w-auto group hover:border-primary-500 transition-colors"
-              >
-                <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                {tc("watchDemo")}
-              </a>
-            </div>
-          </AnimatedSection>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+            <button
+              onClick={handleGetStarted}
+              className="btn-primary w-full sm:w-auto group relative overflow-hidden animate-glow"
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                {tc("getStarted")}
+                <LogIn className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-primary-500 to-accent-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+            <a
+              href="#"
+              className="btn-outline w-full sm:w-auto group hover:border-primary-500 transition-colors"
+            >
+              <Play className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              {tc("watchDemo")}
+            </a>
+          </div>
 
           {/* Stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16 sm:mb-0">
             {stats.map((stat, index) => (
-              <AnimatedItem key={index} index={index} baseDelay={150} animation="scale-in">
-                <div className="card-base card-hover p-4 flex items-center gap-3 group backdrop-blur-sm bg-card/80">
-                  <div className="icon-box icon-box-primary group-hover:scale-110 transition-transform group-hover:animate-wiggle">
-                    <stat.icon className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xl font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
-                      {stat.value}
-                    </div>
-                    <div className="text-xs text-muted-foreground">{stat.label}</div>
-                  </div>
+              <div key={index} className="card-base card-hover p-4 flex items-center gap-3 group backdrop-blur-sm bg-card/80">
+                <div className="icon-box icon-box-primary group-hover:scale-110 transition-transform group-hover:animate-wiggle">
+                  <stat.icon className="w-5 h-5" />
                 </div>
-              </AnimatedItem>
+                <div className="text-left">
+                  <div className="text-xl font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
+                    {stat.value}
+                  </div>
+                  <div className="text-xs text-muted-foreground">{stat.label}</div>
+                </div>
+              </div>
             ))}
           </div>
         </div>
-      </div>
+      </ScrollReveal>
 
       {/* Scroll indicator */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 hidden lg:block animate-bounce-soft z-10">

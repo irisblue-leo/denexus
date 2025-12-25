@@ -29,6 +29,15 @@ interface NativeOrderResult {
   prepayId: string;
 }
 
+interface H5OrderResult {
+  h5Url: string;
+}
+
+interface H5OrderParams extends UnifiedOrderParams {
+  payerClientIp: string;
+  sceneType?: "iOS" | "Android" | "Wap";
+}
+
 // Generate random string
 function generateNonceStr(length = 32): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -130,6 +139,56 @@ export async function createNativeOrder(
   return {
     codeUrl: data.code_url,
     prepayId: data.prepay_id,
+  };
+}
+
+// Create H5 Pay order (mobile browser payment)
+export async function createH5Order(
+  params: H5OrderParams
+): Promise<H5OrderResult> {
+  const url = "/v3/pay/transactions/h5";
+  const fullUrl = `${API_BASE}${url}`;
+
+  const requestBody = {
+    appid: config.appId,
+    mchid: config.mchId,
+    description: params.description,
+    out_trade_no: params.outTradeNo,
+    notify_url: params.notifyUrl || config.notifyUrl,
+    amount: {
+      total: params.totalAmount,
+      currency: "CNY",
+    },
+    scene_info: {
+      payer_client_ip: params.payerClientIp,
+      h5_info: {
+        type: params.sceneType || "Wap",
+      },
+    },
+  };
+
+  const bodyStr = JSON.stringify(requestBody);
+  const authorization = generateAuthHeader("POST", url, bodyStr);
+
+  const response = await fetch(fullUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "application/json",
+      Authorization: authorization,
+    },
+    body: bodyStr,
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error("WeChat H5 Pay API error:", errorData);
+    throw new Error(errorData.message || "Failed to create WeChat H5 Pay order");
+  }
+
+  const data = await response.json();
+  return {
+    h5Url: data.h5_url,
   };
 }
 

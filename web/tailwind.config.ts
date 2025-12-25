@@ -60,12 +60,12 @@ const config: Config = {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
       },
       animation: {
-        "fade-in": "fadeIn 0.6s ease-out forwards",
-        "fade-up": "fadeUp 0.6s ease-out forwards",
-        "fade-down": "fadeDown 0.6s ease-out forwards",
-        "fade-left": "fadeLeft 0.6s ease-out forwards",
-        "fade-right": "fadeRight 0.6s ease-out forwards",
-        "scale-in": "scaleIn 0.5s ease-out forwards",
+        "fade-in": "fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-up": "fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-down": "fadeDown 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-left": "fadeLeft 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "fade-right": "fadeRight 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        "scale-in": "scaleIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "float": "float 6s ease-in-out infinite",
         "float-slow": "float 8s ease-in-out infinite",
         "float-delayed": "float 6s ease-in-out 2s infinite",
@@ -91,23 +91,23 @@ const config: Config = {
           "100%": { opacity: "1" },
         },
         fadeUp: {
-          "0%": { opacity: "0", transform: "translateY(30px)" },
+          "0%": { opacity: "0", transform: "translateY(60px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         fadeDown: {
-          "0%": { opacity: "0", transform: "translateY(-30px)" },
+          "0%": { opacity: "0", transform: "translateY(-60px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
         fadeLeft: {
-          "0%": { opacity: "0", transform: "translateX(30px)" },
+          "0%": { opacity: "0", transform: "translateX(60px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         fadeRight: {
-          "0%": { opacity: "0", transform: "translateX(-30px)" },
+          "0%": { opacity: "0", transform: "translateX(-60px)" },
           "100%": { opacity: "1", transform: "translateX(0)" },
         },
         scaleIn: {
-          "0%": { opacity: "0", transform: "scale(0.9)" },
+          "0%": { opacity: "0", transform: "scale(0.85)" },
           "100%": { opacity: "1", transform: "scale(1)" },
         },
         float: {

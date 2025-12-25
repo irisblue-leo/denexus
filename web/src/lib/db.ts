@@ -861,24 +861,68 @@ export async function createAsset(data: {
   return result.rows[0];
 }
 
+export interface GetAssetsOptions {
+  userId: string;
+  type?: string;
+  startDate?: string;
+  endDate?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export interface GetAssetsResult {
+  assets: DbAsset[];
+  total: number;
+}
+
 export async function getAssetsByUser(
-  userId: string,
-  type?: string,
-  limit = 50,
-  offset = 0
-): Promise<DbAsset[]> {
+  options: GetAssetsOptions
+): Promise<GetAssetsResult> {
+  const { userId, type, startDate, endDate, limit = 20, offset = 0 } = options;
+
+  // Build WHERE conditions
+  const conditions: string[] = ["user_id = $1"];
+  const params: (string | number)[] = [userId];
+  let paramIndex = 2;
+
   if (type) {
-    const result = await pool.query(
-      `SELECT * FROM assets WHERE user_id = $1 AND type = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`,
-      [userId, type, limit, offset]
-    );
-    return result.rows;
+    conditions.push(`type = $${paramIndex}`);
+    params.push(type);
+    paramIndex++;
   }
-  const result = await pool.query(
-    `SELECT * FROM assets WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
-    [userId, limit, offset]
+
+  if (startDate) {
+    conditions.push(`created_at >= $${paramIndex}`);
+    params.push(startDate);
+    paramIndex++;
+  }
+
+  if (endDate) {
+    // Add one day to include the end date fully
+    conditions.push(`created_at < $${paramIndex}::date + interval '1 day'`);
+    params.push(endDate);
+    paramIndex++;
+  }
+
+  const whereClause = conditions.join(" AND ");
+
+  // Get total count
+  const countResult = await pool.query(
+    `SELECT COUNT(*) FROM assets WHERE ${whereClause}`,
+    params
   );
-  return result.rows;
+  const total = parseInt(countResult.rows[0].count, 10);
+
+  // Get paginated results
+  const result = await pool.query(
+    `SELECT * FROM assets WHERE ${whereClause} ORDER BY created_at DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+    [...params, limit, offset]
+  );
+
+  return {
+    assets: result.rows,
+    total,
+  };
 }
 
 export async function getAssetById(id: string): Promise<DbAsset | null> {

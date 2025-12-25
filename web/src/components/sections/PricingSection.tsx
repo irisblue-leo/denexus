@@ -1,21 +1,31 @@
 "use client";
 
-import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Check, X, Sparkles, Zap } from "lucide-react";
-import { AnimatedSection, AnimatedItem } from "@/components/ui/AnimatedSection";
+import { Check, X, Sparkles } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/AnimatedSection";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 export default function PricingSection() {
   const t = useTranslations("pricing");
   const tc = useTranslations("common");
-  const [isYearly, setIsYearly] = useState(true);
+  const { openAuthPanel, isLoggedIn } = useAuth();
+  const router = useRouter();
+
+  const handleBuyClick = () => {
+    if (isLoggedIn) {
+      router.push("/workspace/buy");
+    } else {
+      openAuthPanel();
+    }
+  };
 
   const plans = [
     {
       name: t("free"),
       desc: t("freeDesc"),
       price: t("freePrice"),
-      note: t("freePriceNote"),
+      note: "",
       btn: tc("getStarted"),
       primary: false,
       features: [
@@ -31,16 +41,16 @@ export default function PricingSection() {
     {
       name: t("pro"),
       desc: t("proDesc"),
-      price: isYearly ? "$99" : "$129",
-      note: isYearly ? "/mo" : "/mo",
-      discount: isYearly ? `${tc("save")} 23%` : null,
+      price: "¥199",
+      note: "",
+      originalPrice: "¥299",
       btn: tc("buyNow"),
       primary: true,
       badge: t("popular"),
       features: [
-        { text: t("feature1", { points: 4000 }), ok: true },
-        { text: t("feature2", { count: 800 }), ok: true },
-        { text: t("feature3", { count: 2000 }), ok: true },
+        { text: t("feature1", { points: 500 }), ok: true },
+        { text: t("feature2", { count: 100 }), ok: true },
+        { text: t("feature3", { count: 250 }), ok: true },
         { text: t("feature4", { seconds: 25 }), ok: true },
         { text: t("feature5"), ok: true },
         { text: t("feature6"), ok: true },
@@ -50,15 +60,15 @@ export default function PricingSection() {
     {
       name: t("starter"),
       desc: t("starterDesc"),
-      price: isYearly ? "$29" : "$39",
-      note: isYearly ? "/mo" : "/mo",
-      discount: isYearly ? `${tc("save")} 26%` : null,
+      price: "¥49",
+      note: "",
+      originalPrice: "¥69",
       btn: tc("buyNow"),
       primary: false,
       features: [
-        { text: t("feature1", { points: 900 }), ok: true },
-        { text: t("feature2", { count: 180 }), ok: true },
-        { text: t("feature3", { count: 450 }), ok: true },
+        { text: t("feature1", { points: 100 }), ok: true },
+        { text: t("feature2", { count: 20 }), ok: true },
+        { text: t("feature3", { count: 50 }), ok: true },
         { text: t("feature4", { seconds: 25 }), ok: true },
         { text: t("feature5"), ok: true },
         { text: t("feature6"), ok: true },
@@ -84,9 +94,9 @@ export default function PricingSection() {
         <div className="absolute bottom-1/3 left-10 w-2 h-2 bg-accent-400/30 rounded-full animate-bounce-soft" style={{ animationDelay: "1s" }} />
       </div>
 
-      <div className="container-tight relative">
+      <ScrollReveal className="container-tight relative">
         {/* Header */}
-        <AnimatedSection animation="fade-up" className="text-center mb-12">
+        <div className="text-center mb-12">
           <div className="tag tag-primary mb-4 mx-auto group hover:scale-105 transition-transform cursor-default">
             <Sparkles className="w-3.5 h-3.5 group-hover:animate-wiggle" />
             {t("tag")}
@@ -94,41 +104,13 @@ export default function PricingSection() {
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-4">
             {t("title")}
           </h2>
-          <p className="text-muted-foreground mb-8">{t("description")}</p>
-
-          {/* Toggle */}
-          <div className="flex items-center justify-center gap-3">
-            <span className={`text-sm font-medium transition-colors ${!isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {tc("monthly")}
-            </span>
-            <button
-              onClick={() => setIsYearly(!isYearly)}
-              className={`relative w-14 h-7 rounded-full transition-all duration-300 ${
-                isYearly ? 'bg-primary-600 shadow-lg shadow-primary-500/30' : 'bg-border'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-md transition-all duration-300 ${
-                  isYearly ? 'left-8' : 'left-1'
-                }`}
-              />
-            </button>
-            <span className={`text-sm font-medium transition-colors ${isYearly ? 'text-foreground' : 'text-muted-foreground'}`}>
-              {tc("yearly")}
-            </span>
-            {isYearly && (
-              <span className="tag tag-accent animate-bounce-soft">
-                <Zap className="w-3 h-3" />
-                {tc("save")} 23%
-              </span>
-            )}
-          </div>
-        </AnimatedSection>
+          <p className="text-muted-foreground">{t("description")}</p>
+        </div>
 
         {/* Plans */}
         <div className="grid md:grid-cols-3 gap-6">
           {plans.map((plan, i) => (
-            <AnimatedItem key={i} index={i} baseDelay={150} animation="fade-up">
+            <div key={i}>
               <div
                 className={`relative card-base p-6 group transition-all duration-500 hover:-translate-y-2 ${
                   plan.primary
@@ -151,15 +133,15 @@ export default function PricingSection() {
                   <span className="text-4xl font-bold text-foreground group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                     {plan.price}
                   </span>
-                  <span className="text-muted-foreground text-sm">{plan.note}</span>
-                  {plan.discount && (
-                    <span className="ml-2 text-xs font-medium text-accent-600 dark:text-accent-400">
-                      {plan.discount}
+                  {plan.originalPrice && (
+                    <span className="ml-2 text-lg text-muted-foreground line-through">
+                      {plan.originalPrice}
                     </span>
                   )}
                 </div>
 
                 <button
+                  onClick={handleBuyClick}
                   className={`w-full py-3 rounded-xl font-semibold text-sm transition-all duration-300 mb-6 group/btn overflow-hidden relative ${
                     plan.primary
                       ? 'bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-500 hover:to-primary-600 text-white shadow-lg hover:shadow-xl'
@@ -197,10 +179,10 @@ export default function PricingSection() {
                   <div className="absolute inset-0 -z-10 bg-gradient-to-r from-primary-500/20 to-accent-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl" />
                 )}
               </div>
-            </AnimatedItem>
+            </div>
           ))}
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

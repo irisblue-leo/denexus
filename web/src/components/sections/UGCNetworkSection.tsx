@@ -2,7 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Users, Sparkles, PiggyBank, Globe } from "lucide-react";
-import { AnimatedSection, AnimatedItem } from "@/components/ui/AnimatedSection";
+import { ScrollReveal } from "@/components/ui/AnimatedSection";
 
 export default function UGCNetworkSection() {
   const t = useTranslations("ugc");
@@ -18,10 +18,10 @@ export default function UGCNetworkSection() {
       {/* Background decoration */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-accent-200/20 dark:bg-accent-800/10 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
 
-      <div className="container-tight relative">
+      <ScrollReveal className="container-tight relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Visual - Animated Orbit */}
-          <AnimatedSection animation="fade-right" className="order-2 lg:order-1">
+          <div className="order-2 lg:order-1">
             <div className="relative w-full max-w-sm mx-auto aspect-square">
               {/* Outer orbit ring */}
               <div className="absolute inset-4 border-2 border-dashed border-border rounded-full animate-spin-slow opacity-30" />
@@ -71,54 +71,46 @@ export default function UGCNetworkSection() {
                 </line>
               </svg>
             </div>
-          </AnimatedSection>
+          </div>
 
           {/* Content */}
           <div className="order-1 lg:order-2">
-            <AnimatedSection animation="fade-left">
-              <div className="tag tag-accent mb-4 group hover:scale-105 transition-transform cursor-default">
-                <Globe className="w-3.5 h-3.5 group-hover:animate-spin-slow" />
-                {t("tag")}
-              </div>
-            </AnimatedSection>
+            <div className="tag tag-accent mb-4 group hover:scale-105 transition-transform cursor-default">
+              <Globe className="w-3.5 h-3.5 group-hover:animate-spin-slow" />
+              {t("tag")}
+            </div>
 
-            <AnimatedSection animation="fade-up" delay={100}>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2 leading-tight">
-                {t("title1")}
-              </h2>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
-                <span className="gradient-text">{t("title2")}</span>
-              </h2>
-            </AnimatedSection>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground mb-2 leading-tight">
+              {t("title1")}
+            </h2>
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4">
+              <span className="gradient-text">{t("title2")}</span>
+            </h2>
 
-            <AnimatedSection animation="fade-up" delay={200}>
-              <p className="text-muted-foreground mb-8">
-                {t("description")}
-              </p>
-            </AnimatedSection>
+            <p className="text-muted-foreground mb-8">
+              {t("description")}
+            </p>
 
             <div className="space-y-3">
               {features.map((feature, index) => (
-                <AnimatedItem key={index} index={index} baseDelay={100} animation="fade-right">
-                  <div className="card-base card-hover p-4 flex gap-4 group cursor-pointer">
-                    <div className="icon-box icon-box-accent shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-                      <feature.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
-                        {feature.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {feature.desc}
-                      </p>
-                    </div>
+                <div key={index} className="card-base card-hover p-4 flex gap-4 group cursor-pointer">
+                  <div className="icon-box icon-box-accent shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
+                    <feature.icon className="w-5 h-5" />
                   </div>
-                </AnimatedItem>
+                  <div>
+                    <h3 className="font-semibold text-foreground mb-1 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {feature.desc}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
         </div>
-      </div>
+      </ScrollReveal>
     </section>
   );
 }

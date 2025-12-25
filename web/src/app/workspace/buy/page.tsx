@@ -34,6 +34,12 @@ interface Order {
   expireAt?: string;
 }
 
+interface PaymentInfo {
+  type: "native" | "h5";
+  codeUrl?: string;
+  h5Url?: string;
+}
+
 export default function BuyPage() {
   const t = useTranslations("workspace");
   const locale = useLocale();
@@ -43,8 +49,9 @@ export default function BuyPage() {
   const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
   const [creating, setCreating] = useState(false);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [polling, setPolling] = useState(false);
+  const [showH5Guide, setShowH5Guide] = useState(false);
 
   useEffect(() => {
     fetchPackages();
@@ -80,10 +87,18 @@ export default function BuyPage() {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && data.payment) {
         setCurrentOrder(data.order);
-        if (data.payment?.codeUrl) {
-          setQrCodeUrl(data.payment.codeUrl);
+        setPaymentInfo(data.payment);
+
+        if (data.payment.type === "h5" && data.payment.h5Url) {
+          // H5 payment: redirect to WeChat payment page
+          setShowH5Guide(true);
+          startPolling(data.order.orderNo);
+          // Open H5 payment URL in new window/tab for mobile users
+          window.open(data.payment.h5Url, "_blank");
+        } else if (data.payment.type === "native" && data.payment.codeUrl) {
+          // Native payment: show QR code
           startPolling(data.order.orderNo);
         }
       } else {
@@ -109,14 +124,14 @@ export default function BuyPage() {
             clearInterval(interval);
             setPolling(false);
             setCurrentOrder(null);
-            setQrCodeUrl(null);
+            setPaymentInfo(null);
             refreshUser();
             alert(t("paymentSuccess"));
           } else if (data.order.status === "expired") {
             clearInterval(interval);
             setPolling(false);
             setCurrentOrder(null);
-            setQrCodeUrl(null);
+            setPaymentInfo(null);
             alert(t("orderExpired"));
           }
         }
@@ -134,9 +149,16 @@ export default function BuyPage() {
 
   const closePaymentModal = () => {
     setCurrentOrder(null);
-    setQrCodeUrl(null);
+    setPaymentInfo(null);
     setSelectedPackage(null);
     setPolling(false);
+    setShowH5Guide(false);
+  };
+
+  const openH5Payment = () => {
+    if (paymentInfo?.h5Url) {
+      window.open(paymentInfo.h5Url, "_blank");
+    }
   };
 
   const getPackageName = (pkg: Package) => {
@@ -272,8 +294,8 @@ export default function BuyPage() {
         </div>
       </div>
 
-      {/* Payment QR Code Modal */}
-      {(currentOrder || qrCodeUrl) && (
+      {/* Payment Modal */}
+      {(currentOrder || paymentInfo) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-card rounded-2xl p-8 max-w-sm w-full mx-4 relative">
             <button
@@ -284,27 +306,63 @@ export default function BuyPage() {
             </button>
 
             <div className="text-center">
-              <h3 className="text-xl font-bold text-foreground mb-2">
-                {t("scanToPay")}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-6">
-                {t("useWechatScan")}
-              </p>
+              {/* Native Payment: QR Code */}
+              {paymentInfo?.type === "native" && paymentInfo.codeUrl && (
+                <>
+                  <h3 className="text-xl font-bold text-foreground mb-2">
+                    {t("scanToPay")}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {t("useWechatScan")}
+                  </p>
 
-              {/* QR Code */}
-              <div className="bg-white p-4 rounded-xl border border-border mb-4 inline-block">
-                {qrCodeUrl ? (
-                  <img
-                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrCodeUrl)}`}
-                    alt="Payment QR Code"
-                    className="w-48 h-48"
-                  />
-                ) : (
-                  <div className="w-48 h-48 flex items-center justify-center">
-                    <QrCode className="w-24 h-24 text-muted-foreground" />
+                  <div className="bg-white p-4 rounded-xl border border-border mb-4 inline-block">
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(paymentInfo.codeUrl)}`}
+                      alt="Payment QR Code"
+                      className="w-48 h-48"
+                    />
                   </div>
-                )}
-              </div>
+                </>
+              )}
+
+              {/* H5 Payment: Guide */}
+              {paymentInfo?.type === "h5" && (
+                <>
+                  <h3 className="text-xl font-bold text-foreground mb-2">
+                    {locale === "zh" ? "微信支付" : "WeChat Pay"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {locale === "zh"
+                      ? "请在弹出的页面中完成支付，如果没有自动打开，请点击下方按钮"
+                      : "Please complete payment in the popup. If it didn't open, click the button below"}
+                  </p>
+
+                  <div className="mb-6">
+                    <button
+                      onClick={openH5Payment}
+                      className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.691 11.326c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zm6.618 0c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+                      </svg>
+                      {locale === "zh" ? "打开微信支付" : "Open WeChat Pay"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* No Payment Info */}
+              {!paymentInfo && (
+                <div className="py-8">
+                  <QrCode className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    {locale === "zh"
+                      ? "正在创建支付订单..."
+                      : "Creating payment order..."}
+                  </p>
+                </div>
+              )}
 
               {/* Order Info */}
               {currentOrder && (

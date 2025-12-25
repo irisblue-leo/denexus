@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getAssetsByUser, deleteAsset, getAssetById, generateId } from "@/lib/db";
 import { deleteFromOBS } from "@/lib/obs";
 
-// GET - List user assets
+// GET - List user assets with pagination and date filtering
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -16,10 +16,22 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const type = searchParams.get("type") || undefined;
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const offset = parseInt(searchParams.get("offset") || "0");
+    const startDate = searchParams.get("startDate") || undefined;
+    const endDate = searchParams.get("endDate") || undefined;
+    const page = parseInt(searchParams.get("page") || "1");
+    const pageSize = parseInt(searchParams.get("pageSize") || "20");
+    const offset = (page - 1) * pageSize;
 
-    const assets = await getAssetsByUser(user.id, type, limit, offset);
+    const { assets, total } = await getAssetsByUser({
+      userId: user.id,
+      type,
+      startDate,
+      endDate,
+      limit: pageSize,
+      offset,
+    });
+
+    const totalPages = Math.ceil(total / pageSize);
 
     return NextResponse.json({
       success: true,
@@ -37,6 +49,12 @@ export async function GET(request: NextRequest) {
         taskId: asset.task_id,
         createdAt: asset.created_at,
       })),
+      pagination: {
+        page,
+        pageSize,
+        total,
+        totalPages,
+      },
     });
   } catch (error) {
     console.error("Failed to fetch assets:", error);
