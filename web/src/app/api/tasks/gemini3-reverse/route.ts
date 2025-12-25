@@ -3,22 +3,85 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   createGemini3ReverseTask,
   getGemini3ReverseTasksByUser,
+  getGemini3ReverseTaskCount,
   generateId,
-  deductUserCredits,
+  deductCreditsWithTransaction,
+  refundCredits,
   updateGemini3ReverseTaskStatus,
   deleteGemini3ReverseTask,
+  deleteGemini3ReverseTasks,
 } from "@/lib/db";
 import { reversePrompt } from "@/lib/gemini3-reverse";
 
-export async function GET() {
+// Content policy violation keywords - do not refund for these
+const CONTENT_POLICY_KEYWORDS = [
+  "content policy",
+  "safety",
+  "inappropriate",
+  "violat",
+  "prohibited",
+  "人脸",
+  "真人",
+  "版权",
+  "违规",
+  "侵权",
+  "不当内容",
+  "policy violation",
+  "moderation",
+];
+
+function isContentPolicyViolation(errorMessage: string): boolean {
+  if (!errorMessage) return false;
+  const lowerError = errorMessage.toLowerCase();
+  return CONTENT_POLICY_KEYWORDS.some(keyword =>
+    lowerError.includes(keyword.toLowerCase())
+  );
+}
+
+// Helper function to handle task failure with potential refund
+async function handleTaskFailure(
+  taskId: string,
+  userId: string,
+  creditsCost: number,
+  errorMessage: string
+) {
+  await updateGemini3ReverseTaskStatus(taskId, "failed", undefined, errorMessage);
+
+  // Check if this is a content policy violation - do not refund
+  if (isContentPolicyViolation(errorMessage)) {
+    console.log(`Task ${taskId} failed due to content policy violation, no refund`);
+    return;
+  }
+
+  // Refund credits for non-policy failures
+  console.log(`Refunding ${creditsCost} credits for task ${taskId}`);
+  await refundCredits({
+    userId,
+    amount: creditsCost,
+    description: `任务失败退款: ${errorMessage.substring(0, 100)}`,
+    taskId,
+    taskType: "gemini3-reverse",
+  });
+}
+
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tasks = await getGemini3ReverseTasksByUser(user.id);
-    return NextResponse.json({ success: true, tasks });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = (page - 1) * limit;
+
+    const [tasks, total] = await Promise.all([
+      getGemini3ReverseTasksByUser(user.id, limit, offset),
+      getGemini3ReverseTaskCount(user.id),
+    ]);
+
+    return NextResponse.json({ success: true, tasks, total, page, limit });
   } catch (error) {
     console.error("Get gemini3-reverse tasks error:", error);
     return NextResponse.json(
@@ -56,8 +119,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deduct credits
-    const deducted = await deductUserCredits(user.id, creditsCost);
+    const taskId = generateId("gemini3");
+
+    // Deduct credits with transaction record
+    const deducted = await deductCreditsWithTransaction({
+      userId: user.id,
+      amount: creditsCost,
+      description: `Gemini提示词反推: ${mode}`,
+      taskId,
+      taskType: "gemini3-reverse",
+    });
     if (!deducted) {
       return NextResponse.json(
         { error: "Failed to deduct credits" },
@@ -66,7 +137,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create task with pending status
-    const taskId = generateId("gemini3");
     const task = await createGemini3ReverseTask({
       id: taskId,
       userId: user.id,
@@ -76,7 +146,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Start async processing
-    processReverseTask(taskId, sourceUrl, mode).catch((error) => {
+    processReverseTask(taskId, user.id, sourceUrl, mode, creditsCost).catch((error) => {
       console.error("Background reverse task error:", error);
     });
 
@@ -128,8 +198,10 @@ export async function DELETE(request: NextRequest) {
 // Background task processing
 async function processReverseTask(
   taskId: string,
+  userId: string,
   sourceUrl: string,
-  mode: "video" | "image"
+  mode: "video" | "image",
+  creditsCost: number
 ) {
   try {
     // Update status to processing
@@ -142,12 +214,7 @@ async function processReverseTask(
     });
 
     if (!result.success || !result.prompt) {
-      await updateGemini3ReverseTaskStatus(
-        taskId,
-        "failed",
-        undefined,
-        result.error || "Failed to generate prompt"
-      );
+      await handleTaskFailure(taskId, userId, creditsCost, result.error || "Failed to generate prompt");
       return;
     }
 
@@ -155,11 +222,7 @@ async function processReverseTask(
     await updateGemini3ReverseTaskStatus(taskId, "completed", result.prompt);
   } catch (error) {
     console.error("Process reverse task error:", error);
-    await updateGemini3ReverseTaskStatus(
-      taskId,
-      "failed",
-      undefined,
-      error instanceof Error ? error.message : "Unknown error"
-    );
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    await handleTaskFailure(taskId, userId, creditsCost, errorMessage);
   }
 }

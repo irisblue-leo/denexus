@@ -14,7 +14,13 @@ import {
   Download,
   ExternalLink,
   Trash2,
+  ChevronDown,
+  ChevronRight,
+  ChevronLeft,
+  Square,
+  CheckSquare,
 } from "lucide-react";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface TaskListProps {
   type: "video" | "sora2" | "nano-banana" | "gemini3-reverse";
@@ -38,23 +44,37 @@ interface Task {
   error_message?: string;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function TaskList({ type, refreshTrigger }: TaskListProps) {
   const t = useTranslations("workspace");
+  const tc = useTranslations("common");
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [batchDeleting, setBatchDeleting] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string> | "all">("all");
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const autoRefreshRef = useRef<NodeJS.Timeout | null>(null);
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const apiEndpoint = `/api/tasks/${type}`;
 
-  const fetchTasks = useCallback(async (showRefreshing = false) => {
+  const fetchTasks = useCallback(async (showRefreshing = false, page = currentPage) => {
     if (showRefreshing) setRefreshing(true);
     try {
-      const response = await fetch(apiEndpoint);
+      const response = await fetch(`${apiEndpoint}?page=${page}&limit=${ITEMS_PER_PAGE}`);
       const data = await response.json();
       if (data.success) {
         setTasks(data.tasks);
+        if (data.total !== undefined) {
+          setTotalCount(data.total);
+        } else {
+          setTotalCount(data.tasks.length);
+        }
       }
     } catch (error) {
       console.error("Failed to fetch tasks:", error);
@@ -62,12 +82,12 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [apiEndpoint]);
+  }, [apiEndpoint, currentPage]);
 
   // Initial fetch and refresh trigger
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks, refreshTrigger]);
+    fetchTasks(false, currentPage);
+  }, [fetchTasks, refreshTrigger, currentPage]);
 
   // Auto-refresh when there are pending/processing tasks
   useEffect(() => {
@@ -78,7 +98,7 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
     if (hasPendingTasks) {
       // Start auto-refresh every 3 seconds
       autoRefreshRef.current = setInterval(() => {
-        fetchTasks(false);
+        fetchTasks(false, currentPage);
       }, 3000);
     } else {
       // Stop auto-refresh
@@ -93,14 +113,65 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
         clearInterval(autoRefreshRef.current);
       }
     };
-  }, [tasks, fetchTasks]);
+  }, [tasks, fetchTasks, currentPage]);
 
   const handleRefresh = () => {
-    fetchTasks(true);
+    fetchTasks(true, currentPage);
+  };
+
+  const toggleExpand = (taskId: string) => {
+    setExpandedTasks((prev) => {
+      // If "all" is set, convert to a Set with all tasks except this one (collapse it)
+      if (prev === "all") {
+        const newSet = new Set(tasks.map(t => t.id));
+        newSet.delete(taskId);
+        return newSet;
+      }
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const isExpanded = (taskId: string) => {
+    if (expandedTasks === "all") return true;
+    return expandedTasks.has(taskId);
+  };
+
+  const toggleSelect = (taskId: string) => {
+    setSelectedTasks((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(taskId)) {
+        newSet.delete(taskId);
+      } else {
+        newSet.add(taskId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedTasks.size === tasks.length) {
+      setSelectedTasks(new Set());
+    } else {
+      setSelectedTasks(new Set(tasks.map((t) => t.id)));
+    }
   };
 
   const handleDelete = async (taskId: string) => {
-    if (!confirm(t("confirmDeleteTask"))) return;
+    const confirmed = await confirm({
+      title: t("deleteTask"),
+      message: t("confirmDeleteTask"),
+      confirmText: tc("confirm"),
+      cancelText: tc("cancel"),
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
 
     setDeleting(taskId);
     try {
@@ -115,11 +186,53 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
       const data = await response.json();
       if (data.success) {
         setTasks((prev) => prev.filter((task) => task.id !== taskId));
+        setSelectedTasks((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(taskId);
+          return newSet;
+        });
+        setTotalCount((prev) => Math.max(0, prev - 1));
       }
     } catch (error) {
       console.error("Failed to delete task:", error);
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedTasks.size === 0) return;
+
+    const confirmed = await confirm({
+      title: t("batchDelete"),
+      message: t("confirmBatchDelete", { count: selectedTasks.size }),
+      confirmText: tc("confirm"),
+      cancelText: tc("cancel"),
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
+
+    setBatchDeleting(true);
+    try {
+      const response = await fetch(`${apiEndpoint}/batch`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ taskIds: Array.from(selectedTasks) }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setTasks((prev) => prev.filter((task) => !selectedTasks.has(task.id)));
+        setTotalCount((prev) => Math.max(0, prev - selectedTasks.size));
+        setSelectedTasks(new Set());
+      }
+    } catch (error) {
+      console.error("Failed to batch delete tasks:", error);
+    } finally {
+      setBatchDeleting(false);
     }
   };
 
@@ -201,6 +314,8 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
     return /\.(mp4|webm|mov|avi|mkv)$/i.test(url);
   };
 
+  const totalPages = Math.ceil(totalCount / ITEMS_PER_PAGE);
+
   const emptyState = getEmptyState();
   const Icon = emptyState.icon;
   const listTitle =
@@ -215,12 +330,14 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
   }
 
   return (
+    <>
+    {ConfirmDialog}
     <div className="bg-white dark:bg-card rounded-2xl border border-border h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-semibold text-foreground">
-            {listTitle} {tasks.length > 0 && `(${tasks.length})`}
+            {listTitle} {totalCount > 0 && `(${totalCount})`}
           </h2>
           {tasks.some((t) => t.status === "pending" || t.status === "processing") && (
             <span className="text-xs text-muted-foreground animate-pulse">
@@ -228,16 +345,49 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
             </span>
           )}
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`w-4 h-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`}
-          />
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedTasks.size > 0 && (
+            <button
+              onClick={handleBatchDelete}
+              disabled={batchDeleting}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5"
+            >
+              {batchDeleting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Trash2 className="w-3 h-3" />
+              )}
+              {t("batchDelete")} ({selectedTasks.size})
+            </button>
+          )}
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw
+              className={`w-4 h-4 text-muted-foreground ${refreshing ? "animate-spin" : ""}`}
+            />
+          </button>
+        </div>
       </div>
+
+      {/* Select All */}
+      {tasks.length > 0 && (
+        <div className="px-6 py-2 border-b border-border bg-secondary/20">
+          <button
+            onClick={toggleSelectAll}
+            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {selectedTasks.size === tasks.length ? (
+              <CheckSquare className="w-4 h-4 text-primary-500" />
+            ) : (
+              <Square className="w-4 h-4" />
+            )}
+            {selectedTasks.size === tasks.length ? t("deselectAll") : t("selectAll")}
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       {tasks.length === 0 ? (
@@ -255,27 +405,76 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 space-y-3">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className="bg-secondary/30 dark:bg-secondary/20 rounded-xl p-4 border border-border hover:border-primary-300 dark:hover:border-primary-600 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(task.status)}
-                  <span className="text-sm font-medium text-foreground">
-                    {getStatusText(task.status)}
+        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          {tasks.map((task) => {
+            const taskExpanded = isExpanded(task.id);
+            const isSelected = selectedTasks.has(task.id);
+
+            return (
+              <div
+                key={task.id}
+                className={`bg-secondary/30 dark:bg-secondary/20 rounded-xl border transition-colors ${
+                  isSelected
+                    ? "border-primary-500 bg-primary-50/50 dark:bg-primary-900/20"
+                    : "border-border hover:border-primary-300 dark:hover:border-primary-600"
+                }`}
+              >
+                {/* Collapsed Header */}
+                <div className="flex items-center gap-3 p-3">
+                  {/* Checkbox */}
+                  <button
+                    onClick={() => toggleSelect(task.id)}
+                    className="flex-shrink-0"
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="w-4 h-4 text-primary-500" />
+                    ) : (
+                      <Square className="w-4 h-4 text-muted-foreground hover:text-primary-500" />
+                    )}
+                  </button>
+
+                  {/* Expand/Collapse Toggle */}
+                  <button
+                    onClick={() => toggleExpand(task.id)}
+                    className="flex-shrink-0"
+                  >
+                    {taskExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                    )}
+                  </button>
+
+                  {/* Status */}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {getStatusIcon(task.status)}
+                    <span className="text-xs font-medium text-foreground">
+                      {getStatusText(task.status)}
+                    </span>
+                  </div>
+
+                  {/* Prompt Preview */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-muted-foreground truncate">
+                      {task.prompt || task.mode || "-"}
+                    </p>
+                  </div>
+
+                  {/* Date */}
+                  <span className="text-xs text-muted-foreground flex-shrink-0 hidden sm:block">
+                    {formatDate(task.created_at)}
                   </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">
+
+                  {/* Credits */}
+                  <span className="text-xs text-muted-foreground flex-shrink-0">
                     {task.credits_cost} {t("credits")}
                   </span>
+
+                  {/* Delete Button */}
                   <button
                     onClick={() => handleDelete(task.id)}
                     disabled={deleting === task.id}
-                    className="p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
+                    className="flex-shrink-0 p-1 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors disabled:opacity-50"
                     title={t("deleteTask")}
                   >
                     {deleting === task.id ? (
@@ -285,139 +484,191 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
                     )}
                   </button>
                 </div>
-              </div>
 
-              {/* Task details */}
-              <div className="text-xs text-muted-foreground space-y-1">
-                {task.prompt && (
-                  <p className="line-clamp-2">
-                    {t("prompt")}: {task.prompt}
-                  </p>
-                )}
-                {task.size && task.duration && (
-                  <p>
-                    {task.size} / {task.duration} / {task.quality || "sd"}
-                  </p>
-                )}
-                {task.mode && <p>Mode: {task.mode}</p>}
-                <p>{formatDate(task.created_at)}</p>
-              </div>
-
-              {/* Error message */}
-              {task.status === "failed" && task.error_message && (
-                <div className="mt-2 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
-                  {task.error_message}
-                </div>
-              )}
-
-              {/* Results */}
-              {task.status === "completed" && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  {/* Single result URL */}
-                  {task.result_url && (
-                    <div className="space-y-2">
-                      {isImageUrl(task.result_url) && (
-                        <div className="relative rounded-lg overflow-hidden bg-secondary/50">
-                          <img
-                            src={task.result_url}
-                            alt="Generated result"
-                            className="w-full max-h-64 object-contain"
-                          />
-                        </div>
+                {/* Expanded Content */}
+                {taskExpanded && (
+                  <div className="px-4 pb-4 pt-0 border-t border-border mt-0">
+                    {/* Task details */}
+                    <div className="text-xs text-muted-foreground space-y-1 mt-3">
+                      {task.prompt && (
+                        <p>
+                          <span className="font-medium">{t("prompt")}:</span> {task.prompt}
+                        </p>
                       )}
-                      <a
-                        href={task.result_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                      >
-                        <Download className="w-3 h-3" />
-                        {t("downloadResult")}
-                      </a>
+                      {task.size && task.duration && (
+                        <p>
+                          <span className="font-medium">{t("settings")}:</span> {task.size} / {task.duration} / {task.quality || "sd"}
+                        </p>
+                      )}
+                      {task.mode && (
+                        <p>
+                          <span className="font-medium">Mode:</span> {task.mode}
+                        </p>
+                      )}
+                      <p>
+                        <span className="font-medium">{t("createdAt")}:</span> {formatDate(task.created_at)}
+                      </p>
                     </div>
-                  )}
 
-                  {/* Multiple result URLs (for nano-banana and sora2) */}
-                  {task.result_urls && task.result_urls.length > 0 && (
-                    <div className="space-y-3">
-                      {/* Media grid */}
-                      <div className="grid grid-cols-2 gap-2">
-                        {task.result_urls.map((url, index) => (
-                          <div key={index} className="relative group">
-                            {isVideoUrl(url) ? (
-                              <div className="relative rounded-lg overflow-hidden bg-secondary/50 aspect-video">
+                    {/* Error message */}
+                    {task.status === "failed" && task.error_message && (
+                      <div className="mt-3 text-xs text-red-500 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                        {task.error_message}
+                      </div>
+                    )}
+
+                    {/* Results */}
+                    {task.status === "completed" && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        {/* Single result URL */}
+                        {task.result_url && (
+                          <div className="space-y-2">
+                            {isVideoUrl(task.result_url) ? (
+                              <div className="relative rounded-lg overflow-hidden bg-secondary/50">
                                 <video
-                                  src={url}
+                                  src={task.result_url}
                                   controls
-                                  className="w-full h-full object-contain"
+                                  className="w-full max-h-64 object-contain"
                                   preload="metadata"
                                 />
                               </div>
-                            ) : isImageUrl(url) ? (
-                              <div className="relative rounded-lg overflow-hidden bg-secondary/50 aspect-square">
+                            ) : isImageUrl(task.result_url) ? (
+                              <div className="relative rounded-lg overflow-hidden bg-secondary/50">
                                 <img
-                                  src={url}
-                                  alt={`Generated result ${index + 1}`}
-                                  className="w-full h-full object-cover"
+                                  src={task.result_url}
+                                  alt="Generated result"
+                                  className="w-full max-h-64 object-contain"
                                 />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                                  <a
-                                    href={url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
-                                  >
-                                    <ExternalLink className="w-4 h-4 text-white" />
-                                  </a>
-                                  <a
-                                    href={url}
-                                    download
-                                    className="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
-                                  >
-                                    <Download className="w-4 h-4 text-white" />
-                                  </a>
-                                </div>
                               </div>
-                            ) : (
-                              <a
-                                href={url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                              >
-                                <Download className="w-3 h-3" />
-                                {t("result")} {index + 1}
-                              </a>
-                            )}
+                            ) : null}
+                            <a
+                              href={task.result_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                            >
+                              <Download className="w-3 h-3" />
+                              {t("downloadResult")}
+                            </a>
                           </div>
-                        ))}
+                        )}
+
+                        {/* Multiple result URLs (for nano-banana and sora2) */}
+                        {task.result_urls && task.result_urls.length > 0 && (
+                          <div className="space-y-3">
+                            {/* Media grid */}
+                            <div className="grid grid-cols-2 gap-2">
+                              {task.result_urls.map((url, index) => (
+                                <div key={index} className="relative group">
+                                  {isVideoUrl(url) ? (
+                                    <div className="relative rounded-lg overflow-hidden bg-secondary/50 aspect-video">
+                                      <video
+                                        src={url}
+                                        controls
+                                        className="w-full h-full object-contain"
+                                        preload="metadata"
+                                      />
+                                    </div>
+                                  ) : isImageUrl(url) ? (
+                                    <div className="relative rounded-lg overflow-hidden bg-secondary/50 aspect-square">
+                                      <img
+                                        src={url}
+                                        alt={`Generated result ${index + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                        <a
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
+                                        >
+                                          <ExternalLink className="w-4 h-4 text-white" />
+                                        </a>
+                                        <a
+                                          href={url}
+                                          download
+                                          className="p-2 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
+                                        >
+                                          <Download className="w-4 h-4 text-white" />
+                                        </a>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <a
+                                      href={url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                                    >
+                                      <Download className="w-3 h-3" />
+                                      {t("result")} {index + 1}
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Generated prompt (for reverse tasks) */}
+                        {task.result_prompt && (
+                          <div className="text-xs bg-secondary/50 dark:bg-secondary/30 p-2 rounded-lg mt-2">
+                            <p className="font-medium mb-1">{t("generatedPrompt")}:</p>
+                            <p className="text-muted-foreground whitespace-pre-wrap">{task.result_prompt}</p>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Generated prompt (for reverse tasks) */}
-                  {task.result_prompt && (
-                    <div className="text-xs bg-secondary/50 dark:bg-secondary/30 p-2 rounded-lg mt-2">
-                      <p className="font-medium mb-1">{t("generatedPrompt")}:</p>
-                      <p className="text-muted-foreground">{task.result_prompt}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Processing indicator */}
-              {task.status === "processing" && (
-                <div className="mt-3 pt-3 border-t border-border">
-                  <div className="flex items-center gap-2 text-xs text-blue-500">
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                    <span>{t("generatingImage")}</span>
+                    {/* Processing indicator */}
+                    {task.status === "processing" && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <div className="flex items-center gap-2 text-xs text-blue-500">
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          <span>
+                            {type === "video" || type === "sora2"
+                              ? t("generatingVideo")
+                              : type === "gemini3-reverse"
+                              ? t("generatingPrompt")
+                              : t("generatingImage")}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="px-6 py-3 border-t border-border flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {t("page")} {currentPage} / {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       )}
     </div>
+    </>
   );
 }

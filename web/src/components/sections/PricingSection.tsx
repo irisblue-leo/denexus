@@ -69,8 +69,20 @@ export default function PricingSection() {
 
   return (
     <section id="pricing" className="section-padding relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary-200/20 to-accent-200/20 dark:from-primary-800/10 dark:to-accent-800/10 rounded-full blur-3xl" />
+      {/* Enhanced background decoration */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-r from-primary-200/20 to-accent-200/20 dark:from-primary-800/10 dark:to-accent-800/10 rounded-full blur-3xl animate-pulse-soft" />
+        <div className="absolute top-0 right-0 w-96 h-96 bg-accent-200/10 dark:bg-accent-800/5 rounded-full blur-3xl animate-blob" style={{ animationDelay: "2s" }} />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-primary-200/10 dark:bg-primary-800/5 rounded-full blur-3xl animate-blob" style={{ animationDelay: "4s" }} />
+      </div>
+
+      {/* Floating decorations */}
+      <div className="absolute inset-0 -z-5 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-20 w-20 h-20 border border-primary-300/20 dark:border-primary-600/10 rounded-full animate-float" />
+        <div className="absolute bottom-20 right-20 w-16 h-16 border border-accent-300/20 dark:border-accent-600/10 rounded-lg rotate-45 animate-float-slow" />
+        <div className="absolute top-1/3 right-10 w-3 h-3 bg-primary-400/30 rounded-full animate-bounce-soft" />
+        <div className="absolute bottom-1/3 left-10 w-2 h-2 bg-accent-400/30 rounded-full animate-bounce-soft" style={{ animationDelay: "1s" }} />
+      </div>
 
       <div className="container-tight relative">
         {/* Header */}

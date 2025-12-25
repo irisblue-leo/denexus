@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Copy, Zap, Target, Sparkles, Play } from "lucide-react";
 import { AnimatedSection, AnimatedItem } from "@/components/ui/AnimatedSection";
+import { GridPattern } from "@/components/ui/AnimatedBackground";
 
 export default function AIEngineSection() {
   const t = useTranslations("aiEngine");
@@ -15,8 +16,19 @@ export default function AIEngineSection() {
 
   return (
     <section id="features" className="section-padding relative overflow-hidden">
-      {/* Background decoration */}
-      <div className="absolute top-1/2 right-0 w-96 h-96 bg-primary-200/20 dark:bg-primary-800/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+      {/* Enhanced background decorations */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute top-1/2 right-0 w-96 h-96 bg-primary-200/20 dark:bg-primary-800/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-blob" />
+        <div className="absolute bottom-0 left-0 w-80 h-80 bg-accent-200/15 dark:bg-accent-800/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2 animate-blob" style={{ animationDelay: "3s" }} />
+        <GridPattern className="opacity-50" />
+      </div>
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 -z-5 pointer-events-none overflow-hidden">
+        <div className="absolute top-20 left-10 w-3 h-3 bg-primary-400/40 rounded-full animate-float" />
+        <div className="absolute top-40 right-20 w-2 h-2 bg-accent-400/40 rounded-full animate-float-slow" />
+        <div className="absolute bottom-20 left-1/4 w-2 h-2 bg-purple-400/30 rounded-full animate-bounce-soft" />
+      </div>
 
       <div className="container-tight relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">

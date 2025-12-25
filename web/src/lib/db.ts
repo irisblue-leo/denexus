@@ -203,7 +203,25 @@ export async function initDatabase() {
       )
     `);
 
+    // Create credit_transactions table
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS credit_transactions (
+        id VARCHAR(50) PRIMARY KEY,
+        user_id VARCHAR(50) NOT NULL REFERENCES users(id),
+        type VARCHAR(20) NOT NULL,
+        amount INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        description TEXT,
+        task_id VARCHAR(50),
+        task_type VARCHAR(50),
+        order_id VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_credit_transactions_user ON credit_transactions(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_credit_transactions_type ON credit_transactions(type)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_video_tasks_user ON video_tasks(user_id)`);
@@ -330,12 +348,15 @@ export async function createVideoTask(data: {
   productImages?: string[];
   referenceVideoUrl?: string;
   sellingPoints?: string;
+  prompt?: string;
   size?: string;
   duration?: string;
   quality?: string;
   language?: string;
   creditsCost?: number;
 }): Promise<DbVideoTask> {
+  // Use prompt if provided, otherwise fallback to sellingPoints
+  const promptValue = data.prompt || data.sellingPoints || null;
   const result = await pool.query(
     `INSERT INTO video_tasks (id, user_id, product_images, reference_video_url, selling_points, size, duration, quality, language, credits_cost)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -345,12 +366,12 @@ export async function createVideoTask(data: {
       data.userId,
       data.productImages || null,
       data.referenceVideoUrl || null,
-      data.sellingPoints || null,
+      promptValue,
       data.size || 'portrait',
-      data.duration || '15s',
-      data.quality || 'sd',
+      data.duration || '5s',
+      data.quality || 'std',
       data.language || 'en',
-      data.creditsCost || 10,
+      data.creditsCost || 3,
     ]
   );
   return result.rows[0];
@@ -364,10 +385,12 @@ export async function getVideoTasksByUser(userId: string, limit = 20, offset = 0
   return result.rows;
 }
 
-export async function updateVideoTaskStatus(id: string, status: string, resultUrl?: string, errorMessage?: string): Promise<void> {
+export async function updateVideoTaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string): Promise<void> {
+  // Store first URL in result_url field for compatibility, or JSON array if multiple
+  const resultUrl = resultUrls && resultUrls.length > 0 ? resultUrls[0] : null;
   await pool.query(
     `UPDATE video_tasks SET status = $1, result_url = $2, error_message = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-    [status, resultUrl || null, errorMessage || null, id]
+    [status, resultUrl, errorMessage || null, id]
   );
 }
 
@@ -858,4 +881,252 @@ export async function getAssetCountByUser(userId: string): Promise<number> {
     [userId]
   );
   return parseInt(result.rows[0].count, 10);
+}
+
+// ==================== Credit Transaction Operations ====================
+export interface DbCreditTransaction {
+  id: string;
+  user_id: string;
+  type: string; // 'purchase' | 'usage' | 'refund' | 'bonus'
+  amount: number; // positive for credit, negative for debit
+  balance_after: number;
+  description: string | null;
+  task_id: string | null;
+  task_type: string | null;
+  order_id: string | null;
+  created_at: Date;
+}
+
+export async function createCreditTransaction(data: {
+  id: string;
+  userId: string;
+  type: string;
+  amount: number;
+  balanceAfter: number;
+  description?: string;
+  taskId?: string;
+  taskType?: string;
+  orderId?: string;
+}): Promise<DbCreditTransaction> {
+  const result = await pool.query(
+    `INSERT INTO credit_transactions (id, user_id, type, amount, balance_after, description, task_id, task_type, order_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     RETURNING *`,
+    [
+      data.id,
+      data.userId,
+      data.type,
+      data.amount,
+      data.balanceAfter,
+      data.description || null,
+      data.taskId || null,
+      data.taskType || null,
+      data.orderId || null,
+    ]
+  );
+  return result.rows[0];
+}
+
+export async function getCreditTransactionsByUser(
+  userId: string,
+  limit = 20,
+  offset = 0
+): Promise<DbCreditTransaction[]> {
+  const result = await pool.query(
+    `SELECT * FROM credit_transactions WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+    [userId, limit, offset]
+  );
+  return result.rows;
+}
+
+export async function getCreditTransactionCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM credit_transactions WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+// Refund credits to user and create a transaction record
+export async function refundCredits(data: {
+  userId: string;
+  amount: number;
+  description: string;
+  taskId: string;
+  taskType: string;
+}): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Add credits back to user
+    const userResult = await client.query(
+      `UPDATE users SET credits = credits + $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING credits`,
+      [data.amount, data.userId]
+    );
+
+    if (userResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    const newBalance = userResult.rows[0].credits;
+
+    // Create transaction record
+    await client.query(
+      `INSERT INTO credit_transactions (id, user_id, type, amount, balance_after, description, task_id, task_type)
+       VALUES ($1, $2, 'refund', $3, $4, $5, $6, $7)`,
+      [
+        generateId("txn"),
+        data.userId,
+        data.amount,
+        newBalance,
+        data.description,
+        data.taskId,
+        data.taskType,
+      ]
+    );
+
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Failed to refund credits:", error);
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
+// Deduct credits with transaction record
+export async function deductCreditsWithTransaction(data: {
+  userId: string;
+  amount: number;
+  description: string;
+  taskId: string;
+  taskType: string;
+}): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Deduct credits from user
+    const userResult = await client.query(
+      `UPDATE users SET credits = credits - $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND credits >= $1 RETURNING credits`,
+      [data.amount, data.userId]
+    );
+
+    if (userResult.rowCount === 0) {
+      await client.query("ROLLBACK");
+      return false;
+    }
+
+    const newBalance = userResult.rows[0].credits;
+
+    // Create transaction record
+    await client.query(
+      `INSERT INTO credit_transactions (id, user_id, type, amount, balance_after, description, task_id, task_type)
+       VALUES ($1, $2, 'usage', $3, $4, $5, $6, $7)`,
+      [
+        generateId("txn"),
+        data.userId,
+        -data.amount, // negative for debit
+        newBalance,
+        data.description,
+        data.taskId,
+        data.taskType,
+      ]
+    );
+
+    await client.query("COMMIT");
+    return true;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("Failed to deduct credits:", error);
+    return false;
+  } finally {
+    client.release();
+  }
+}
+
+// ==================== Task Count Operations ====================
+export async function getSora2TaskCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM sora2_tasks WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+export async function getNanoBananaTaskCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM nano_banana_tasks WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+export async function getGemini3ReverseTaskCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM gemini3_reverse_tasks WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+export async function getVideoTaskCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM video_tasks WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+// ==================== Batch Delete Operations ====================
+export async function deleteSora2Tasks(ids: string[], userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM sora2_tasks WHERE id = ANY($1) AND user_id = $2`,
+    [ids, userId]
+  );
+  return result.rowCount || 0;
+}
+
+export async function deleteNanoBananaTasks(ids: string[], userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM nano_banana_tasks WHERE id = ANY($1) AND user_id = $2`,
+    [ids, userId]
+  );
+  return result.rowCount || 0;
+}
+
+export async function deleteGemini3ReverseTasks(ids: string[], userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM gemini3_reverse_tasks WHERE id = ANY($1) AND user_id = $2`,
+    [ids, userId]
+  );
+  return result.rowCount || 0;
+}
+
+export async function deleteVideoTasks(ids: string[], userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM video_tasks WHERE id = ANY($1) AND user_id = $2`,
+    [ids, userId]
+  );
+  return result.rowCount || 0;
+}
+
+// Get task by ID for refund check
+export async function getSora2TaskById(id: string): Promise<DbSora2Task | null> {
+  const result = await pool.query(`SELECT * FROM sora2_tasks WHERE id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
+export async function getNanoBananaTaskById(id: string): Promise<DbNanoBananaTask | null> {
+  const result = await pool.query(`SELECT * FROM nano_banana_tasks WHERE id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
+export async function getGemini3ReverseTaskById(id: string): Promise<DbGemini3ReverseTask | null> {
+  const result = await pool.query(`SELECT * FROM gemini3_reverse_tasks WHERE id = $1`, [id]);
+  return result.rows[0] || null;
 }

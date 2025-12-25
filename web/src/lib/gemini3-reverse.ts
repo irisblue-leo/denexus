@@ -1,11 +1,42 @@
-// 302.AI Gemini API Integration for Reverse Prompt
+// 302.AI Gemini API Integration for Reverse Prompt (Native Gemini Format)
 
 const API_KEY = process.env.JUHE_API_KEY || "";
 const BASE_URL = process.env.JUHE_BASE_URL || "https://api.302.ai";
 const ENABLED = process.env.JUHE_ENABLED === "true";
 
-// Use gemini-3-pro-preview model
-const DEFAULT_MODEL = "gemini-3-pro-preview";
+// Use gemini-2.5-flash for video analysis (supports video in native format)
+const DEFAULT_MODEL = "gemini-2.5-flash";
+
+// Max video size for inline_data (20MB)
+const MAX_VIDEO_SIZE = 20 * 1024 * 1024;
+
+// Convert media URL to base64
+async function mediaUrlToBase64(url: string): Promise<{ data: string; mimeType: string } | null> {
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Check size limit for videos
+    if (buffer.length > MAX_VIDEO_SIZE) {
+      console.warn(`Media size ${buffer.length} exceeds limit ${MAX_VIDEO_SIZE}`);
+      return null;
+    }
+
+    const base64 = buffer.toString("base64");
+    const contentType = response.headers.get("content-type") || "video/mp4";
+
+    return {
+      data: base64,
+      mimeType: contentType,
+    };
+  } catch (error) {
+    console.error("Failed to convert media to base64:", error);
+    return null;
+  }
+}
 
 interface ReversePromptRequest {
   sourceUrl: string;
@@ -172,7 +203,7 @@ export async function reverseImagePrompt(
   }
 }
 
-// Analyze video and reverse engineer the prompt
+// Analyze video and reverse engineer the prompt (using native Gemini API format)
 export async function reverseVideoPrompt(
   request: ReversePromptRequest
 ): Promise<ReversePromptResponse> {
@@ -191,43 +222,49 @@ export async function reverseVideoPrompt(
   }
 
   try {
-    // For video analysis, we use the video_url type
-    const content: Array<{ type: string; text?: string; video_url?: { url: string }; image_url?: { url: string } }> = [];
+    // Download video and convert to base64 for inline_data
+    console.log("Downloading video for base64 conversion:", request.sourceUrl);
+    const mediaData = await mediaUrlToBase64(request.sourceUrl);
 
-    // Add system prompt
-    content.push({
-      type: "text",
-      text: VIDEO_REVERSE_PROMPT,
-    });
+    if (!mediaData) {
+      return {
+        success: false,
+        error: "Failed to download video or video exceeds 20MB limit",
+      };
+    }
 
-    // Add video - Gemini supports video_url similar to image_url
-    // If the API doesn't support video_url directly, we might need to extract frames
-    content.push({
-      type: "video_url",
-      video_url: {
-        url: request.sourceUrl,
-      },
-    });
+    console.log(`Video converted to base64, size: ${(mediaData.data.length / 1024 / 1024).toFixed(2)} MB, mimeType: ${mediaData.mimeType}`);
 
+    const model = request.model || DEFAULT_MODEL;
+
+    // Build request body using native Gemini API format
+    // Reference: https://ai.google.dev/gemini-api/docs/video-understanding
     const requestBody = {
-      model: request.model || DEFAULT_MODEL,
-      stream: false,
-      messages: [
+      contents: [
         {
-          role: "user",
-          content: content,
+          parts: [
+            {
+              inline_data: {
+                mime_type: mediaData.mimeType,
+                data: mediaData.data,
+              },
+            },
+            {
+              text: VIDEO_REVERSE_PROMPT,
+            },
+          ],
         },
       ],
     };
 
-    console.log("Calling Gemini API for video reverse:", JSON.stringify(requestBody, null, 2));
+    console.log(`Calling native Gemini API for video reverse, model: ${model}`);
 
-    const response = await fetch(`${BASE_URL}/v1/chat/completions`, {
+    // Use native Gemini API endpoint: /v1beta/models/{model}:generateContent
+    const response = await fetch(`${BASE_URL}/v1beta/models/${model}:generateContent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Accept: "application/json",
-        Authorization: `Bearer ${API_KEY}`,
+        "x-goog-api-key": API_KEY,
       },
       body: JSON.stringify(requestBody),
     });
@@ -253,14 +290,14 @@ export async function reverseVideoPrompt(
     const data = JSON.parse(responseText);
     let prompt = "";
 
-    if (data.choices && data.choices.length > 0) {
-      const messageContent = data.choices[0].message?.content;
-      if (typeof messageContent === "string") {
-        prompt = messageContent.trim();
-      } else if (Array.isArray(messageContent)) {
-        for (const item of messageContent) {
-          if (item.type === "text" && item.text) {
-            prompt += item.text;
+    // Parse native Gemini response format
+    // Response: { candidates: [{ content: { parts: [{ text: "..." }] } }] }
+    if (data.candidates && data.candidates.length > 0) {
+      const parts = data.candidates[0].content?.parts;
+      if (parts && Array.isArray(parts)) {
+        for (const part of parts) {
+          if (part.text) {
+            prompt += part.text;
           }
         }
         prompt = prompt.trim();

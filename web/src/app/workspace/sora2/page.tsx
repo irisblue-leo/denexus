@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Plus, Sparkles, Monitor, Smartphone, Loader2, X } from "lucide-react";
+import { Plus, Sparkles, Monitor, Smartphone, Loader2, X, Wand2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TaskList from "@/components/workspace/TaskList";
+import AssetPickerModal from "@/components/workspace/AssetPickerModal";
 
 interface UploadedImage {
   url: string;
@@ -23,13 +24,15 @@ export default function Sora2Page() {
   const [error, setError] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [polishing, setPolishing] = useState(false);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
 
+  // sora-2: supports 10s, 15s
+  // sora-2-pro: supports 15s, 25s
   const durationOptions = [
-    { value: "5s", label: "5s" },
     { value: "10s", label: "10s" },
     { value: "15s", label: "15s" },
-    { value: "20s", label: "20s" },
+    { value: "25s", label: "25s" },
   ];
 
   const qualityOptions = [
@@ -43,58 +46,48 @@ export default function Sora2Page() {
     let baseCost = selectedQuality === "hd" ? 50 : 5;
     // Duration adjustments
     if (selectedDuration === "15s") baseCost = Math.round(baseCost * 1.5);
-    if (selectedDuration === "20s") baseCost = Math.round(baseCost * 2);
+    if (selectedDuration === "25s") baseCost = Math.round(baseCost * 2.5);
     return baseCost * quantity;
   };
 
-  const handleImageUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+  const handleAssetSelect = (asset: { url: string; filename: string }) => {
+    setUploadedImage(asset);
+  };
 
-    const file = files[0];
+  const removeImage = () => {
+    setUploadedImage(null);
+  };
 
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError(t("invalidFileType"));
-      return;
-    }
+  const handlePolishPrompt = async () => {
+    if (!prompt.trim() || polishing) return;
 
-    // Validate file size (10MB max)
-    if (file.size > 10 * 1024 * 1024) {
-      setError(t("fileTooLarge"));
-      return;
-    }
-
-    setUploading(true);
+    setPolishing(true);
     setError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
+      const response = await fetch("/api/polish-prompt", {
         method: "POST",
-        body: formData,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt,
+          imageUrl: uploadedImage?.url, // Pass image URL for vision analysis
+        }),
       });
 
       const data = await response.json();
 
-      if (data.success) {
-        setUploadedImage({
-          url: data.url,
-          filename: data.filename,
-        });
+      if (data.success && data.polishedPrompt) {
+        setPrompt(data.polishedPrompt);
       } else {
-        setError(data.error || t("uploadFailed"));
+        setError(data.error || t("polishFailed"));
       }
     } catch {
       setError(t("networkError"));
     } finally {
-      setUploading(false);
+      setPolishing(false);
     }
-  }, [t]);
-
-  const removeImage = () => {
-    setUploadedImage(null);
   };
 
   const handleSubmit = async () => {
@@ -177,23 +170,13 @@ export default function Sora2Page() {
 
               {/* Upload Button */}
               {!uploadedImage && (
-                <label className="w-24 h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload(e.target.files)}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                  {uploading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      <span className="text-xs">{t("selectImages")}</span>
-                    </>
-                  )}
-                </label>
+                <button
+                  onClick={() => setShowAssetPicker(true)}
+                  className="w-24 h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-xs">{t("selectImages")}</span>
+                </button>
               )}
             </div>
           </div>
@@ -204,12 +187,28 @@ export default function Sora2Page() {
               <span className="text-red-500">*</span> {t("prompt")}
             </label>
             <p className="text-xs text-muted-foreground mb-2">{t("promptHint")}</p>
-            <textarea
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder={t("promptPlaceholder")}
-              className="w-full h-32 px-4 py-3 bg-secondary/50 border border-border rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-            />
+            <div className="relative">
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                placeholder={t("promptPlaceholder")}
+                className="w-full h-32 px-4 py-3 pb-10 bg-secondary/50 border border-border rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              />
+              {/* Polish Button */}
+              <button
+                onClick={handlePolishPrompt}
+                disabled={!prompt.trim() || polishing}
+                title={t("polishPrompt")}
+                className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-100 dark:hover:bg-primary-900/50 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+              >
+                {polishing ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Wand2 className="w-3.5 h-3.5" />
+                )}
+                {t("polish")}
+              </button>
+            </div>
           </div>
 
           {/* Generation Config */}
@@ -340,6 +339,14 @@ export default function Sora2Page() {
       <div className="flex-1 min-w-0">
         <TaskList type="sora2" refreshTrigger={refreshTrigger} />
       </div>
+
+      {/* Asset Picker Modal */}
+      <AssetPickerModal
+        isOpen={showAssetPicker}
+        onClose={() => setShowAssetPicker(false)}
+        onSelect={handleAssetSelect}
+        acceptType="image"
+      />
     </div>
   );
 }

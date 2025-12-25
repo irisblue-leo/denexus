@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Plus, Sparkles, Loader2, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TaskList from "@/components/workspace/TaskList";
+import AssetPickerModal from "@/components/workspace/AssetPickerModal";
 
 interface UploadedImage {
   url: string;
@@ -20,64 +21,20 @@ export default function NanoBananaPage() {
   const [error, setError] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [uploading, setUploading] = useState(false);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
 
   // Calculate credits cost
   const calculateCost = () => {
     return 2 * quantity;
   };
 
-  const handleImageUpload = useCallback(async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-
-    setUploading(true);
-    setError("");
-
-    try {
-      const newImages: UploadedImage[] = [];
-
-      for (const file of Array.from(files)) {
-        // Validate file type
-        if (!file.type.startsWith("image/")) {
-          setError(t("invalidFileType"));
-          continue;
-        }
-
-        // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
-          setError(t("fileTooLarge"));
-          continue;
-        }
-
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const response = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          newImages.push({
-            url: data.url,
-            filename: data.filename,
-          });
-        } else {
-          setError(data.error || t("uploadFailed"));
-        }
-      }
-
-      if (newImages.length > 0) {
-        setUploadedImages((prev) => [...prev, ...newImages].slice(0, 5)); // Max 5 images
-      }
-    } catch {
-      setError(t("networkError"));
-    } finally {
-      setUploading(false);
-    }
-  }, [t]);
+  const handleAssetSelect = (asset: { url: string; filename: string }) => {
+    // Add to images list, max 5 images
+    setUploadedImages((prev) => {
+      if (prev.length >= 5) return prev;
+      return [...prev, asset];
+    });
+  };
 
   const removeImage = (index: number) => {
     setUploadedImages((prev) => prev.filter((_, i) => i !== index));
@@ -160,24 +117,13 @@ export default function NanoBananaPage() {
 
               {/* Upload Button */}
               {uploadedImages.length < 5 && (
-                <label className="w-24 h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => handleImageUpload(e.target.files)}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                  {uploading ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5" />
-                      <span className="text-xs">{t("selectImages")}</span>
-                    </>
-                  )}
-                </label>
+                <button
+                  onClick={() => setShowAssetPicker(true)}
+                  className="w-24 h-24 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center gap-2 text-muted-foreground hover:border-primary-500 hover:text-primary-500 transition-colors cursor-pointer"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="text-xs">{t("selectImages")}</span>
+                </button>
               )}
             </div>
           </div>
@@ -250,6 +196,14 @@ export default function NanoBananaPage() {
       <div className="flex-1 min-w-0">
         <TaskList type="nano-banana" refreshTrigger={refreshTrigger} />
       </div>
+
+      {/* Asset Picker Modal */}
+      <AssetPickerModal
+        isOpen={showAssetPicker}
+        onClose={() => setShowAssetPicker(false)}
+        onSelect={handleAssetSelect}
+        acceptType="image"
+      />
     </div>
   );
 }

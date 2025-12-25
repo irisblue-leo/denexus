@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Film, Image, Sparkles, Loader2, Upload, Link, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import TaskList from "@/components/workspace/TaskList";
+import AssetPickerModal from "@/components/workspace/AssetPickerModal";
 
 export default function Gemini3ReversePage() {
   const t = useTranslations("workspace");
@@ -13,61 +14,16 @@ export default function Gemini3ReversePage() {
   const [inputMode, setInputMode] = useState<"url" | "upload">("url");
   const [sourceUrl, setSourceUrl] = useState("");
   const [uploadedFile, setUploadedFile] = useState<{ url: string; filename: string } | null>(null);
-  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [showAssetPicker, setShowAssetPicker] = useState(false);
 
   const creditsCost = 2;
 
-  const handleFileUpload = useCallback(async (file: File) => {
-    // Validate file type
-    const isVideo = file.type.startsWith("video/");
-    const isImage = file.type.startsWith("image/");
-
-    if (reverseMode === "video" && !isVideo) {
-      setError(t("invalidFileType"));
-      return;
-    }
-    if (reverseMode === "image" && !isImage) {
-      setError(t("invalidFileType"));
-      return;
-    }
-
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      setError(t("fileTooLarge"));
-      return;
-    }
-
-    setUploading(true);
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setUploadedFile({
-          url: data.url,
-          filename: data.filename,
-        });
-      } else {
-        setError(data.error || t("uploadFailed"));
-      }
-    } catch {
-      setError(t("networkError"));
-    } finally {
-      setUploading(false);
-    }
-  }, [reverseMode, t]);
+  const handleAssetSelect = (asset: { url: string; filename: string }) => {
+    setUploadedFile(asset);
+  };
 
   const removeUploadedFile = () => {
     setUploadedFile(null);
@@ -247,28 +203,15 @@ export default function Gemini3ReversePage() {
                   </div>
                 </div>
               ) : (
-                <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary-500 transition-colors">
-                  <input
-                    type="file"
-                    accept={reverseMode === "video" ? "video/*" : "image/*"}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleFileUpload(file);
-                    }}
-                    className="hidden"
-                    disabled={uploading}
-                  />
-                  {uploading ? (
-                    <Loader2 className="w-8 h-8 text-primary-500 animate-spin" />
-                  ) : (
-                    <>
-                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                      <span className="text-sm text-muted-foreground">
-                        {t("selectFile")}
-                      </span>
-                    </>
-                  )}
-                </label>
+                <button
+                  onClick={() => setShowAssetPicker(true)}
+                  className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary-500 transition-colors"
+                >
+                  <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                  <span className="text-sm text-muted-foreground">
+                    {t("selectFile")}
+                  </span>
+                </button>
               )}
             </div>
           )}
@@ -314,6 +257,14 @@ export default function Gemini3ReversePage() {
       <div className="flex-1 min-w-0">
         <TaskList type="gemini3-reverse" refreshTrigger={refreshTrigger} />
       </div>
+
+      {/* Asset Picker Modal */}
+      <AssetPickerModal
+        isOpen={showAssetPicker}
+        onClose={() => setShowAssetPicker(false)}
+        onSelect={handleAssetSelect}
+        acceptType={reverseMode}
+      />
     </div>
   );
 }

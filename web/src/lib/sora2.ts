@@ -34,6 +34,7 @@ interface Sora2Response {
   status?: string;
   error?: string;
   rawResponse?: string;
+  model?: string;
 }
 
 interface Sora2StatusResponse {
@@ -63,14 +64,15 @@ export async function submitSora2Task(
   }
 
   try {
-    // Determine size based on orientation
-    let size = request.size;
-    if (!size) {
-      size = request.orientation === "portrait" ? "720x1280" : "1280x720";
-    }
+    const model = request.model || DEFAULT_MODEL;
 
+    // Determine size based on orientation
+    // Supported: 720x1280, 1280x720, 1024x1792, 1792x1024
+    const size = request.size || (request.orientation === "landscape" ? "1280x720" : "720x1280");
+
+    // Build request body according to 302.AI Sora2 API spec
     const requestBody: Record<string, unknown> = {
-      model: request.model || DEFAULT_MODEL,
+      model: model,
       prompt: request.prompt,
       orientation: request.orientation || "portrait",
       size: size,
@@ -111,35 +113,44 @@ export async function submitSora2Task(
       };
     }
 
-    const data = JSON.parse(responseText);
+    const result = JSON.parse(responseText);
 
-    // The API returns a task ID for async processing
-    // Or directly returns the video URL if completed immediately
-    if (data.video_url || data.videoUrl) {
-      return {
-        success: true,
-        videoUrl: data.video_url || data.videoUrl,
-        status: "completed",
-        rawResponse: responseText,
-      };
+    // Handle 302.AI response format: { code, data: { id, status, outputs, ... }, message }
+    if (result.code === 200 && result.data) {
+      const data = result.data;
+
+      // Check if video is already completed with outputs
+      if (data.status === "completed" && data.outputs && data.outputs.length > 0) {
+        return {
+          success: true,
+          videoUrl: data.outputs[0],
+          status: "completed",
+          rawResponse: responseText,
+          model: model,
+        };
+      }
+
+      // Return task ID for polling (just the video_xxx part, we'll add model prefix when querying)
+      if (data.id) {
+        return {
+          success: true,
+          taskId: data.id, // e.g., "video_49b1dde2-4601-42ed-a287-57022e76e971"
+          status: data.status || "queued",
+          rawResponse: responseText,
+          model: model,
+        };
+      }
     }
 
-    if (data.task_id || data.taskId || data.id) {
-      return {
-        success: true,
-        taskId: data.task_id || data.taskId || data.id,
-        status: "pending",
-        rawResponse: responseText,
-      };
-    }
-
-    // Handle different response formats
+    // Fallback for other response formats
+    const data = result.data || result;
     return {
       success: true,
       taskId: data.task_id || data.taskId || data.id,
       videoUrl: data.video_url || data.videoUrl || data.video,
       status: data.status || "pending",
       rawResponse: responseText,
+      model: model,
     };
   } catch (error) {
     console.error("Sora2 API error:", error);
@@ -151,6 +162,9 @@ export async function submitSora2Task(
 }
 
 // Check task status
+// taskId format: "video_xxx", will be prefixed with "sora-2"
+// Note: According to 302.AI docs, the query ID format is always "sora-2:video_xxxx"
+// regardless of whether sora-2 or sora-2-pro was used for generation
 export async function checkSora2TaskStatus(
   taskId: string
 ): Promise<Sora2StatusResponse> {
@@ -171,7 +185,12 @@ export async function checkSora2TaskStatus(
   }
 
   try {
-    const response = await fetch(`${BASE_URL}/sora/v2/video/${taskId}`, {
+    // API expects format: video_xxxx (no prefix needed)
+    // Remove any prefix if present
+    const queryId = taskId.includes(":") ? taskId.split(":")[1] : taskId;
+    console.log("Checking Sora2 task status for:", queryId);
+
+    const response = await fetch(`${BASE_URL}/sora/v2/video/${queryId}`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${API_KEY}`,
@@ -197,23 +216,38 @@ export async function checkSora2TaskStatus(
       };
     }
 
-    const data = JSON.parse(responseText);
+    const result = JSON.parse(responseText);
+
+    // Handle 302.AI response format: { code, data: { status, outputs, ... }, message } or direct format
+    const data = result.data || result;
 
     // Determine status
     let status: "pending" | "processing" | "completed" | "failed" = "pending";
-    if (data.status === "completed" || data.status === "success" || data.video_url || data.videoUrl) {
+    const dataStatus = data.status?.toLowerCase() || "";
+
+    if (dataStatus === "completed" || dataStatus === "success") {
       status = "completed";
-    } else if (data.status === "failed" || data.status === "error") {
+    } else if (dataStatus === "failed" || dataStatus === "error") {
       status = "failed";
-    } else if (data.status === "processing" || data.status === "running") {
+    } else if (dataStatus === "processing" || dataStatus === "running" || dataStatus === "in_progress") {
       status = "processing";
+    } else if (dataStatus === "queued" || dataStatus === "pending") {
+      status = "pending";
+    }
+
+    // Get video URL from outputs array
+    let videoUrl: string | undefined;
+    if (data.outputs && Array.isArray(data.outputs) && data.outputs.length > 0) {
+      videoUrl = data.outputs[0];
+    } else {
+      videoUrl = data.video_url || data.videoUrl || data.video;
     }
 
     return {
       success: true,
       status,
-      videoUrl: data.video_url || data.videoUrl || data.video,
-      error: data.error || data.message,
+      videoUrl,
+      error: data.error || (result.message !== "success" ? result.message : undefined),
       rawResponse: responseText,
     };
   } catch (error) {

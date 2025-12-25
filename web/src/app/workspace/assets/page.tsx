@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Filter,
 } from "lucide-react";
+import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface Asset {
   id: string;
@@ -33,11 +34,13 @@ type FilterType = "all" | "image" | "video";
 
 export default function AssetsPage() {
   const t = useTranslations("workspace");
+  const tc = useTranslations("common");
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>("all");
+  const { confirm, ConfirmDialog } = useConfirm();
 
   const fetchAssets = useCallback(async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -65,7 +68,15 @@ export default function AssetsPage() {
   };
 
   const handleDelete = async (assetId: string) => {
-    if (!confirm(t("confirmDelete"))) return;
+    const confirmed = await confirm({
+      title: t("deleteAsset"),
+      message: t("confirmDelete"),
+      confirmText: tc("confirm"),
+      cancelText: tc("cancel"),
+      variant: "danger",
+    });
+
+    if (!confirmed) return;
 
     setDeleting(assetId);
     try {
@@ -147,6 +158,8 @@ export default function AssetsPage() {
   }
 
   return (
+    <>
+    {ConfirmDialog}
     <div className="p-6 h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -309,5 +322,6 @@ export default function AssetsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

@@ -3,24 +3,87 @@ import { getCurrentUser } from "@/lib/auth";
 import {
   createNanoBananaTask,
   getNanoBananaTasksByUser,
+  getNanoBananaTaskCount,
   generateId,
-  deductUserCredits,
+  deductCreditsWithTransaction,
+  refundCredits,
   updateNanoBananaTaskStatus,
   createAsset,
   deleteNanoBananaTask,
+  deleteNanoBananaTasks,
 } from "@/lib/db";
 import { generateNanoBananaImagesDirect } from "@/lib/nano-banana";
 import { uploadBase64ToOBS, uploadFromURLToOBS, generateFilePath } from "@/lib/obs";
 
-export async function GET() {
+// Content policy violation keywords - do not refund for these
+const CONTENT_POLICY_KEYWORDS = [
+  "content policy",
+  "safety",
+  "inappropriate",
+  "violat",
+  "prohibited",
+  "人脸",
+  "真人",
+  "版权",
+  "违规",
+  "侵权",
+  "不当内容",
+  "policy violation",
+  "moderation",
+];
+
+function isContentPolicyViolation(errorMessage: string): boolean {
+  if (!errorMessage) return false;
+  const lowerError = errorMessage.toLowerCase();
+  return CONTENT_POLICY_KEYWORDS.some(keyword =>
+    lowerError.includes(keyword.toLowerCase())
+  );
+}
+
+// Helper function to handle task failure with potential refund
+async function handleTaskFailure(
+  taskId: string,
+  userId: string,
+  creditsCost: number,
+  errorMessage: string
+) {
+  await updateNanoBananaTaskStatus(taskId, "failed", undefined, errorMessage);
+
+  // Check if this is a content policy violation - do not refund
+  if (isContentPolicyViolation(errorMessage)) {
+    console.log(`Task ${taskId} failed due to content policy violation, no refund`);
+    return;
+  }
+
+  // Refund credits for non-policy failures
+  console.log(`Refunding ${creditsCost} credits for task ${taskId}`);
+  await refundCredits({
+    userId,
+    amount: creditsCost,
+    description: `任务失败退款: ${errorMessage.substring(0, 100)}`,
+    taskId,
+    taskType: "nano-banana",
+  });
+}
+
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tasks = await getNanoBananaTasksByUser(user.id);
-    return NextResponse.json({ success: true, tasks });
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const offset = (page - 1) * limit;
+
+    const [tasks, total] = await Promise.all([
+      getNanoBananaTasksByUser(user.id, limit, offset),
+      getNanoBananaTaskCount(user.id),
+    ]);
+
+    return NextResponse.json({ success: true, tasks, total, page, limit });
   } catch (error) {
     console.error("Get nano-banana tasks error:", error);
     return NextResponse.json(
@@ -58,8 +121,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deduct credits
-    const deducted = await deductUserCredits(user.id, creditsCost);
+    const taskId = generateId("nano");
+
+    // Deduct credits with transaction record
+    const deducted = await deductCreditsWithTransaction({
+      userId: user.id,
+      amount: creditsCost,
+      description: `Nano Banana图片生成: ${prompt.substring(0, 50)}`,
+      taskId,
+      taskType: "nano-banana",
+    });
     if (!deducted) {
       return NextResponse.json(
         { error: "Failed to deduct credits" },
@@ -68,7 +139,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Create task with pending status
-    const taskId = generateId("nano");
     const task = await createNanoBananaTask({
       id: taskId,
       userId: user.id,
@@ -79,7 +149,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Start async image generation
-    processNanoBananaTask(taskId, user.id, prompt, productImages, quantity).catch((error) => {
+    processNanoBananaTask(taskId, user.id, prompt, productImages, quantity, creditsCost).catch((error) => {
       console.error("Background task error:", error);
     });
 
@@ -134,7 +204,8 @@ async function processNanoBananaTask(
   userId: string,
   prompt: string,
   productImages: string[] | undefined,
-  quantity: number
+  quantity: number,
+  creditsCost: number
 ) {
   try {
     // Update status to processing
@@ -148,7 +219,7 @@ async function processNanoBananaTask(
     });
 
     if (!result.success || !result.images || result.images.length === 0) {
-      await updateNanoBananaTaskStatus(taskId, "failed", undefined, result.error || "No images generated");
+      await handleTaskFailure(taskId, userId, creditsCost, result.error || "No images generated");
       return;
     }
 
@@ -214,15 +285,11 @@ async function processNanoBananaTask(
     if (outputUrls.length > 0) {
       await updateNanoBananaTaskStatus(taskId, "completed", outputUrls);
     } else {
-      await updateNanoBananaTaskStatus(taskId, "failed", undefined, "Failed to upload generated images");
+      await handleTaskFailure(taskId, userId, creditsCost, "Failed to upload generated images");
     }
   } catch (error) {
     console.error("Process nano-banana task error:", error);
-    await updateNanoBananaTaskStatus(
-      taskId,
-      "failed",
-      undefined,
-      error instanceof Error ? error.message : "Unknown error"
-    );
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    await handleTaskFailure(taskId, userId, creditsCost, errorMessage);
   }
 }
