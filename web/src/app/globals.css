@@ -203,3 +203,61 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.3);
 }
+
+/* Theme Toggle Animation */
+@keyframes theme-icon-spin {
+  0% {
+    transform: rotate(-30deg) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-theme-icon {
+  animation: theme-icon-spin 0.3s ease-out;
+}
+
+/* View Transitions API - Circle Expand Effect */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* Dark mode transition: circle expands from button */
+.dark::view-transition-new(root) {
+  animation: circle-clip-in 0.5s ease-out;
+}
+
+/* Light mode transition: circle expands from button */
+:root:not(.dark)::view-transition-new(root) {
+  animation: circle-clip-in 0.5s ease-out;
+}
+
+@keyframes circle-clip-in {
+  0% {
+    clip-path: circle(0px at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 0px));
+  }
+  100% {
+    clip-path: circle(var(--theme-toggle-radius, 100vmax) at var(--theme-toggle-x, 50%) var(--theme-toggle-y, 0px));
+  }
+}
+
+/* Fallback for browsers without View Transitions API */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none !important;
+  }
+}

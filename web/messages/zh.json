@@ -50,7 +50,8 @@
   "nav": {
     "features": "功能",
     "pricing": "定价",
-    "faq": "常见问题"
+    "faq": "常见问题",
+    "workspace": "工作台"
   },
   "hero": {
     "badge": "全新AI视频创作平台已上线",
@@ -317,6 +318,8 @@
     "lowTransformation": "低变换",
     "highTransformation": "高变换",
     "videoRequired": "请选择一个视频",
-    "createFirstRunway": "创建您的第一个视频生视频任务"
+    "createFirstRunway": "创建您的第一个视频生视频任务",
+    "tooManyTasks": "当前有太多任务正在处理中，请稍后再试",
+    "taskDuration": "用时"
   }
 }

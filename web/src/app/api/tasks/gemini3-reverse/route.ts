@@ -10,6 +10,8 @@ import {
   updateGemini3ReverseTaskStatus,
   deleteGemini3ReverseTask,
   deleteGemini3ReverseTasks,
+  canCreateNewTask,
+  MAX_CONCURRENT_TASKS,
 } from "@/lib/db";
 import { reversePrompt } from "@/lib/gemini3-reverse";
 
@@ -108,6 +110,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check concurrent task limit
+    const canCreate = await canCreateNewTask();
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: "Too many tasks in progress", code: "CONCURRENT_LIMIT", maxTasks: MAX_CONCURRENT_TASKS },
+        { status: 429 }
+      );
+    }
+
     // Calculate credits cost
     const creditsCost = 2;
 
@@ -203,6 +214,8 @@ async function processReverseTask(
   mode: "video" | "image",
   creditsCost: number
 ) {
+  const startTime = Date.now();
+
   try {
     // Update status to processing
     await updateGemini3ReverseTaskStatus(taskId, "processing");
@@ -219,7 +232,8 @@ async function processReverseTask(
     }
 
     // Update task with result
-    await updateGemini3ReverseTaskStatus(taskId, "completed", result.prompt);
+    const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+    await updateGemini3ReverseTaskStatus(taskId, "completed", result.prompt, undefined, durationSeconds);
   } catch (error) {
     console.error("Process reverse task error:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";

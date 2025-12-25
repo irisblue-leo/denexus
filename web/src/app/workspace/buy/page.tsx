@@ -185,30 +185,30 @@ export default function BuyPage() {
   }
 
   return (
-    <div className="p-6 h-screen overflow-y-auto">
+    <div className="p-4 md:p-6 min-h-screen overflow-y-auto">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-2xl font-bold text-foreground mb-2">
+        <div className="text-center mb-6 md:mb-10">
+          <h1 className="text-xl md:text-2xl font-bold text-foreground mb-2">
             {t("buyCreditsTitle")}
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm md:text-base text-muted-foreground">
             {t("buyCreditsDescription")}
           </p>
-          <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/20 rounded-full">
+          <div className="mt-3 md:mt-4 inline-flex items-center gap-2 px-3 md:px-4 py-2 bg-primary-50 dark:bg-primary-900/20 rounded-full">
             <Sparkles className="w-4 h-4 text-primary-500" />
-            <span className="text-sm font-medium text-primary-600 dark:text-primary-400">
+            <span className="text-xs md:text-sm font-medium text-primary-600 dark:text-primary-400">
               {t("currentCredits")}: {user?.credits || 0}
             </span>
           </div>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-10">
           {packages.map((pkg) => (
             <div
               key={pkg.id}
-              className={`relative bg-white dark:bg-card rounded-2xl border-2 p-6 transition-all ${
+              className={`relative bg-white dark:bg-card rounded-2xl border-2 p-4 md:p-6 transition-all ${
                 pkg.isPopular
                   ? "border-primary-500 shadow-lg shadow-primary-500/20"
                   : "border-border hover:border-primary-300"

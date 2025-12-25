@@ -3,6 +3,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { getOrderByOrderNo, updateOrderStatus, addUserCredits } from "@/lib/db";
 import { queryOrder } from "@/lib/wechat-pay";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();

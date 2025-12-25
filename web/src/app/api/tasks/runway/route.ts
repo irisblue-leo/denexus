@@ -10,6 +10,8 @@ import {
   deleteRunwayTask,
   updateRunwayTaskStatus,
   createAsset,
+  canCreateNewTask,
+  MAX_CONCURRENT_TASKS,
 } from "@/lib/db";
 import { submitRunwayTask, checkRunwayTaskStatus, getRunwayCreditsCost } from "@/lib/runway";
 import { uploadToOBS, generateFilePath } from "@/lib/obs";
@@ -160,6 +162,8 @@ async function processRunwayTask(
   structureTransformation: number,
   creditsCost: number
 ) {
+  const startTime = Date.now();
+
   try {
     // Update status to processing
     await updateRunwayTaskStatus(taskId, "processing");
@@ -183,8 +187,9 @@ async function processRunwayTask(
 
     // Helper function to save video and create asset
     const saveVideoAsAsset = async (resultVideoUrl: string) => {
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
       const obsResult = await uploadVideoToOBS(resultVideoUrl, taskId, userId);
-      await updateRunwayTaskStatus(taskId, "completed", obsResult.url);
+      await updateRunwayTaskStatus(taskId, "completed", obsResult.url, undefined, undefined, durationSeconds);
 
       // Create asset record
       const assetId = generateId("asset");
@@ -254,6 +259,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Video URL is required" },
         { status: 400 }
+      );
+    }
+
+    // Check concurrent task limit
+    const canCreate = await canCreateNewTask();
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: "Too many tasks in progress", code: "CONCURRENT_LIMIT", maxTasks: MAX_CONCURRENT_TASKS },
+        { status: 429 }
       );
     }
 

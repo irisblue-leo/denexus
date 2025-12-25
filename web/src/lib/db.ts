@@ -55,10 +55,13 @@ export async function initDatabase() {
         credits_cost INTEGER DEFAULT 10,
         result_url TEXT,
         error_message TEXT,
+        duration_seconds INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add duration_seconds column if not exists
+    await client.query(`ALTER TABLE video_tasks ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`);
 
     // Create sora2_tasks table (Sora2 Video Generation)
     await client.query(`
@@ -75,10 +78,13 @@ export async function initDatabase() {
         credits_cost INTEGER DEFAULT 5,
         result_urls TEXT[],
         error_message TEXT,
+        duration_seconds INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add duration_seconds column if not exists
+    await client.query(`ALTER TABLE sora2_tasks ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`);
 
     // Create nano_banana_tasks table (Nano Banana Image)
     await client.query(`
@@ -92,10 +98,13 @@ export async function initDatabase() {
         credits_cost INTEGER DEFAULT 2,
         result_urls TEXT[],
         error_message TEXT,
+        duration_seconds INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add duration_seconds column if not exists
+    await client.query(`ALTER TABLE nano_banana_tasks ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`);
 
     // Create gemini3_reverse_tasks table (Gemini3 Reverse Prompt)
     await client.query(`
@@ -108,10 +117,13 @@ export async function initDatabase() {
         credits_cost INTEGER DEFAULT 2,
         result_prompt TEXT,
         error_message TEXT,
+        duration_seconds INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add duration_seconds column if not exists
+    await client.query(`ALTER TABLE gemini3_reverse_tasks ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`);
 
     // Create runway_tasks table (Video-to-Video Generation)
     await client.query(`
@@ -126,10 +138,13 @@ export async function initDatabase() {
         result_url TEXT,
         error_message TEXT,
         external_task_id VARCHAR(100),
+        duration_seconds INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Add duration_seconds column if not exists
+    await client.query(`ALTER TABLE runway_tasks ADD COLUMN IF NOT EXISTS duration_seconds INTEGER`);
 
     // Create influencer_tasks table (Create Task for influencer cooperation)
     await client.query(`
@@ -357,6 +372,7 @@ export interface DbVideoTask {
   credits_cost: number;
   result_url: string | null;
   error_message: string | null;
+  duration_seconds: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -404,12 +420,12 @@ export async function getVideoTasksByUser(userId: string, limit = 20, offset = 0
   return result.rows;
 }
 
-export async function updateVideoTaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string): Promise<void> {
+export async function updateVideoTaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string, durationSeconds?: number): Promise<void> {
   // Store first URL in result_url field for compatibility, or JSON array if multiple
   const resultUrl = resultUrls && resultUrls.length > 0 ? resultUrls[0] : null;
   await pool.query(
-    `UPDATE video_tasks SET status = $1, result_url = $2, error_message = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-    [status, resultUrl, errorMessage || null, id]
+    `UPDATE video_tasks SET status = $1, result_url = $2, error_message = $3, duration_seconds = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+    [status, resultUrl, errorMessage || null, durationSeconds || null, id]
   );
 }
 
@@ -427,6 +443,7 @@ export interface DbSora2Task {
   credits_cost: number;
   result_urls: string[] | null;
   error_message: string | null;
+  duration_seconds: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -469,10 +486,10 @@ export async function getSora2TasksByUser(userId: string, limit = 20, offset = 0
   return result.rows;
 }
 
-export async function updateSora2TaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string): Promise<void> {
+export async function updateSora2TaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string, durationSeconds?: number): Promise<void> {
   await pool.query(
-    `UPDATE sora2_tasks SET status = $1, result_urls = $2, error_message = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-    [status, resultUrls || null, errorMessage || null, id]
+    `UPDATE sora2_tasks SET status = $1, result_urls = $2, error_message = $3, duration_seconds = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+    [status, resultUrls || null, errorMessage || null, durationSeconds || null, id]
   );
 }
 
@@ -487,6 +504,7 @@ export interface DbNanoBananaTask {
   credits_cost: number;
   result_urls: string[] | null;
   error_message: string | null;
+  duration_seconds: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -523,10 +541,10 @@ export async function getNanoBananaTasksByUser(userId: string, limit = 20, offse
   return result.rows;
 }
 
-export async function updateNanoBananaTaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string): Promise<void> {
+export async function updateNanoBananaTaskStatus(id: string, status: string, resultUrls?: string[], errorMessage?: string, durationSeconds?: number): Promise<void> {
   await pool.query(
-    `UPDATE nano_banana_tasks SET status = $1, result_urls = $2, error_message = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-    [status, resultUrls || null, errorMessage || null, id]
+    `UPDATE nano_banana_tasks SET status = $1, result_urls = $2, error_message = $3, duration_seconds = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+    [status, resultUrls || null, errorMessage || null, durationSeconds || null, id]
   );
 }
 
@@ -540,6 +558,7 @@ export interface DbGemini3ReverseTask {
   credits_cost: number;
   result_prompt: string | null;
   error_message: string | null;
+  duration_seconds: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -568,10 +587,10 @@ export async function getGemini3ReverseTasksByUser(userId: string, limit = 20, o
   return result.rows;
 }
 
-export async function updateGemini3ReverseTaskStatus(id: string, status: string, resultPrompt?: string, errorMessage?: string): Promise<void> {
+export async function updateGemini3ReverseTaskStatus(id: string, status: string, resultPrompt?: string, errorMessage?: string, durationSeconds?: number): Promise<void> {
   await pool.query(
-    `UPDATE gemini3_reverse_tasks SET status = $1, result_prompt = $2, error_message = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $4`,
-    [status, resultPrompt || null, errorMessage || null, id]
+    `UPDATE gemini3_reverse_tasks SET status = $1, result_prompt = $2, error_message = $3, duration_seconds = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+    [status, resultPrompt || null, errorMessage || null, durationSeconds || null, id]
   );
 }
 
@@ -1145,6 +1164,29 @@ export async function getVideoTaskCount(userId: string): Promise<number> {
   return parseInt(result.rows[0].count, 10);
 }
 
+// Maximum concurrent processing tasks limit
+export const MAX_CONCURRENT_TASKS = 8;
+
+// Count total processing tasks across all task tables (system-wide)
+export async function getTotalProcessingTaskCount(): Promise<number> {
+  const result = await pool.query(`
+    SELECT
+      (SELECT COUNT(*) FROM video_tasks WHERE status IN ('pending', 'processing')) +
+      (SELECT COUNT(*) FROM sora2_tasks WHERE status IN ('pending', 'processing')) +
+      (SELECT COUNT(*) FROM nano_banana_tasks WHERE status IN ('pending', 'processing')) +
+      (SELECT COUNT(*) FROM gemini3_reverse_tasks WHERE status IN ('pending', 'processing')) +
+      (SELECT COUNT(*) FROM runway_tasks WHERE status IN ('pending', 'processing'))
+    AS total_count
+  `);
+  return parseInt(result.rows[0].total_count, 10);
+}
+
+// Check if the system can accept new tasks (under concurrent limit)
+export async function canCreateNewTask(): Promise<boolean> {
+  const count = await getTotalProcessingTaskCount();
+  return count < MAX_CONCURRENT_TASKS;
+}
+
 // ==================== Batch Delete Operations ====================
 export async function deleteSora2Tasks(ids: string[], userId: string): Promise<number> {
   const result = await pool.query(
@@ -1206,6 +1248,7 @@ export interface DbRunwayTask {
   result_url: string | null;
   error_message: string | null;
   external_task_id: string | null;
+  duration_seconds: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -1257,11 +1300,12 @@ export async function updateRunwayTaskStatus(
   status: string,
   resultUrl?: string,
   errorMessage?: string,
-  externalTaskId?: string
+  externalTaskId?: string,
+  durationSeconds?: number
 ): Promise<void> {
   await pool.query(
-    `UPDATE runway_tasks SET status = $1, result_url = $2, error_message = $3, external_task_id = COALESCE($4, external_task_id), updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
-    [status, resultUrl || null, errorMessage || null, externalTaskId || null, id]
+    `UPDATE runway_tasks SET status = $1, result_url = $2, error_message = $3, external_task_id = COALESCE($4, external_task_id), duration_seconds = $5, updated_at = CURRENT_TIMESTAMP WHERE id = $6`,
+    [status, resultUrl || null, errorMessage || null, externalTaskId || null, durationSeconds || null, id]
   );
 }
 

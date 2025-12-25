@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { Menu, X, LogIn } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,7 +15,6 @@ export default function Header({ locale }: HeaderProps) {
   const t = useTranslations();
   const { openAuthPanel, isLoggedIn } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -25,7 +24,6 @@ export default function Header({ locale }: HeaderProps) {
 
   const handleGetStarted = () => {
     if (isLoggedIn) {
-      // TODO: Navigate to workspace
       window.location.href = "/workspace";
     } else {
       openAuthPanel();
@@ -47,13 +45,13 @@ export default function Header({ locale }: HeaderProps) {
       }`}
     >
       <div className="container-tight">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 md:h-16">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <span className="text-white font-bold text-sm">D</span>
+            <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <span className="text-white font-bold text-xs md:text-sm">D</span>
             </div>
-            <span className="text-lg font-bold text-foreground">
+            <span className="text-base md:text-lg font-bold text-foreground">
               Denexus
             </span>
           </a>
@@ -86,53 +84,17 @@ export default function Header({ locale }: HeaderProps) {
             </button>
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="flex md:hidden items-center gap-2">
+          {/* Mobile Actions - Simple, no dropdown menu */}
+          <div className="flex md:hidden items-center gap-1">
             <ThemeToggle />
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              onClick={handleGetStarted}
+              className="btn-primary text-xs px-3 py-1.5"
             >
-              {isMobileMenuOpen ? (
-                <X className="w-5 h-5" />
-              ) : (
-                <Menu className="w-5 h-5" />
-              )}
+              {isLoggedIn ? t("nav.workspace") : t("common.login")}
             </button>
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border animate-fade-in">
-            <nav className="flex flex-col gap-2">
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-              <div className="flex items-center gap-2 px-4 pt-2">
-                <LanguageToggle currentLocale={locale} />
-              </div>
-              <div className="px-4 pt-2">
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleGetStarted();
-                  }}
-                  className="btn-primary text-sm w-full justify-center"
-                >
-                  {t("common.getStarted")}
-                </button>
-              </div>
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   );

@@ -26,7 +26,7 @@ export default function HeroSection() {
   ];
 
   return (
-    <section className="relative pt-24 pb-16 sm:pt-32 sm:pb-20 overflow-hidden min-h-screen flex items-center">
+    <section className="relative pt-20 pb-12 sm:pt-32 sm:pb-20 overflow-hidden md:min-h-screen md:flex md:items-center">
       {/* Enhanced Animated Background */}
       <HeroBackground />
 
@@ -50,14 +50,14 @@ export default function HeroSection() {
       <ScrollReveal className="container-tight relative">
         <div className="text-center max-w-3xl mx-auto">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 tag tag-primary mb-6 group cursor-pointer hover:scale-105 transition-transform animate-glow">
+          <div className="inline-flex items-center gap-2 tag tag-primary mb-4 sm:mb-6 group cursor-pointer hover:scale-105 transition-transform animate-glow">
             <Sparkles className="w-3.5 h-3.5 animate-pulse" />
             <span className="w-1.5 h-1.5 bg-accent-500 rounded-full animate-pulse" />
             {t("badge")}
           </div>
 
           {/* Title */}
-          <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
+          <h1 className="text-2xl sm:text-4xl lg:text-6xl font-bold text-foreground leading-tight mb-4 sm:mb-6">
             {t("title1")}
             <br />
             <span className="gradient-text bg-[length:200%_auto] animate-gradient">{t("title2")}</span>
@@ -66,12 +66,12 @@ export default function HeroSection() {
           </h1>
 
           {/* Description */}
-          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-8 leading-relaxed">
+          <p className="text-sm sm:text-lg text-muted-foreground max-w-2xl mx-auto mb-6 sm:mb-8 leading-relaxed">
             {t("description")}
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8 sm:mb-12">
             <button
               onClick={handleGetStarted}
               className="btn-primary w-full sm:w-auto group relative overflow-hidden animate-glow"
@@ -92,7 +92,7 @@ export default function HeroSection() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16 sm:mb-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             {stats.map((stat, index) => (
               <div key={index} className="card-base card-hover p-4 flex items-center gap-3 group backdrop-blur-sm bg-card/80">
                 <div className="icon-box icon-box-primary group-hover:scale-110 transition-transform group-hover:animate-wiggle">

@@ -8,6 +8,8 @@ import {
   getInfluencerTasksByUser,
 } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   try {
     const user = await getCurrentUser();

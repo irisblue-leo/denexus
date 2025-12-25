@@ -33,7 +33,7 @@ export default function AIEngineSection() {
       <ScrollReveal className="container-tight relative">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Content */}
-          <div>
+          <div className="min-w-0">
             <div className="tag tag-primary mb-4 group hover:scale-105 transition-transform cursor-default">
               <Sparkles className="w-3.5 h-3.5 group-hover:animate-wiggle" />
               {t("tag")}
@@ -55,7 +55,7 @@ export default function AIEngineSection() {
                   <div className="icon-box icon-box-primary shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform">
                     <feature.icon className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-foreground mb-1 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">
                       {feature.title}
                     </h3>

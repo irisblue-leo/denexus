@@ -29,7 +29,16 @@ export default function DatePicker({
     }
     return new Date();
   });
+  const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Close on click outside
   useEffect(() => {
@@ -143,78 +152,103 @@ export default function DatePicker({
         )}
       </div>
 
-      {/* Dropdown */}
+      {/* Dropdown - Modal on mobile, dropdown on desktop */}
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white dark:bg-card border border-border rounded-xl shadow-lg p-3 min-w-[280px]">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-3">
-            <button
-              onClick={handlePrevMonth}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <span className="text-sm font-medium text-foreground">
-              {viewDate.getFullYear()}年 {MONTHS[viewDate.getMonth()]}
-            </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+        <>
+          {/* Mobile backdrop */}
+          {isMobile && (
+            <div
+              className="fixed inset-0 bg-black/50 z-40"
+              onClick={() => setIsOpen(false)}
+            />
+          )}
 
-          {/* Weekday headers */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {WEEKDAYS.map((day) => (
-              <div
-                key={day}
-                className="text-center text-xs text-muted-foreground font-medium py-1"
+          <div className={`
+            ${isMobile
+              ? "fixed left-4 right-4 top-1/2 -translate-y-1/2 z-50"
+              : "absolute top-full left-0 mt-1 z-50"
+            }
+            bg-white dark:bg-card border border-border rounded-xl shadow-lg p-3
+            ${isMobile ? "w-auto" : "min-w-[280px]"}
+          `}>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-3">
+              <button
+                onClick={handlePrevMonth}
+                className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
               >
-                {day}
-              </div>
-            ))}
-          </div>
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="text-sm font-medium text-foreground">
+                {viewDate.getFullYear()}年 {MONTHS[viewDate.getMonth()]}
+              </span>
+              <button
+                onClick={handleNextMonth}
+                className="p-1.5 hover:bg-secondary rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Days grid */}
-          <div className="grid grid-cols-7 gap-1">
-            {days.map((day, index) => (
-              <div key={index} className="aspect-square">
-                {day !== null && (
-                  <button
-                    onClick={() => handleSelectDay(day)}
-                    className={`w-full h-full flex items-center justify-center text-sm rounded-lg transition-colors ${
-                      isSelected(day)
-                        ? "bg-primary-500 text-white"
-                        : isToday(day)
-                        ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
-                        : "hover:bg-secondary text-foreground"
-                    }`}
-                  >
-                    {day}
-                  </button>
-                )}
-              </div>
-            ))}
-          </div>
+            {/* Weekday headers */}
+            <div className="grid grid-cols-7 gap-1 mb-2">
+              {WEEKDAYS.map((day) => (
+                <div
+                  key={day}
+                  className="text-center text-xs text-muted-foreground font-medium py-1"
+                >
+                  {day}
+                </div>
+              ))}
+            </div>
 
-          {/* Today button */}
-          <div className="mt-3 pt-3 border-t border-border">
-            <button
-              onClick={() => {
-                const today = new Date();
-                const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-                onChange(dateStr);
-                setViewDate(today);
-                setIsOpen(false);
-              }}
-              className="w-full py-1.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
-            >
-              今天
-            </button>
+            {/* Days grid */}
+            <div className="grid grid-cols-7 gap-1">
+              {days.map((day, index) => (
+                <div key={index} className="aspect-square">
+                  {day !== null && (
+                    <button
+                      onClick={() => handleSelectDay(day)}
+                      className={`w-full h-full flex items-center justify-center text-sm rounded-lg transition-colors ${
+                        isSelected(day)
+                          ? "bg-primary-500 text-white"
+                          : isToday(day)
+                          ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
+                          : "hover:bg-secondary text-foreground"
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Today button */}
+            <div className="mt-3 pt-3 border-t border-border flex gap-2">
+              <button
+                onClick={() => {
+                  const today = new Date();
+                  const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+                  onChange(dateStr);
+                  setViewDate(today);
+                  setIsOpen(false);
+                }}
+                className="flex-1 py-1.5 text-sm text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 rounded-lg transition-colors"
+              >
+                今天
+              </button>
+              {isMobile && (
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="px-4 py-1.5 text-sm text-muted-foreground hover:bg-secondary rounded-lg transition-colors"
+                >
+                  取消
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

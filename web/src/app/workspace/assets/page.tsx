@@ -190,13 +190,13 @@ export default function AssetsPage() {
   return (
     <>
     {ConfirmDialog}
-    <div className="p-6 h-screen flex flex-col">
+    <div className="p-4 md:p-6 min-h-screen flex flex-col">
       {/* Header */}
-      <div className="flex flex-col gap-4 mb-6">
+      <div className="flex flex-col gap-3 md:gap-4 mb-4 md:mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">{t("assets")}</h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h1 className="text-xl md:text-2xl font-bold text-foreground">{t("assets")}</h1>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">
               {t("assetsDescription")} ({pagination.total})
             </p>
           </div>
@@ -211,13 +211,13 @@ export default function AssetsPage() {
           </button>
         </div>
 
-        {/* Filters Row */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Filters Row - Stack on mobile */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
           {/* Type Filter */}
-          <div className="flex items-center gap-2 bg-secondary/50 rounded-lg p-1">
+          <div className="flex items-center gap-1 sm:gap-2 bg-secondary/50 rounded-lg p-1 overflow-x-auto">
             <button
               onClick={() => setFilter("all")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
                 filter === "all"
                   ? "bg-white dark:bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -227,7 +227,7 @@ export default function AssetsPage() {
             </button>
             <button
               onClick={() => setFilter("image")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
                 filter === "image"
                   ? "bg-white dark:bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -237,7 +237,7 @@ export default function AssetsPage() {
             </button>
             <button
               onClick={() => setFilter("video")}
-              className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+              className={`px-2 sm:px-3 py-1.5 text-xs sm:text-sm rounded-md transition-colors whitespace-nowrap ${
                 filter === "video"
                   ? "bg-white dark:bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -247,18 +247,20 @@ export default function AssetsPage() {
             </button>
           </div>
 
-          {/* Date Filter */}
-          <div className="flex items-center gap-2">
+          {/* Date Filter - Compact on mobile */}
+          <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <DatePicker
               value={startDate}
               onChange={setStartDate}
               placeholder="开始日期"
+              className="flex-1 sm:flex-none"
             />
-            <span className="text-muted-foreground">至</span>
+            <span className="text-muted-foreground text-sm">至</span>
             <DatePicker
               value={endDate}
               onChange={setEndDate}
               placeholder="结束日期"
+              className="flex-1 sm:flex-none"
             />
           </div>
         </div>
@@ -376,86 +378,96 @@ export default function AssetsPage() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-4 border-t border-border mt-4">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page <= 1}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 pt-4 border-t border-border mt-4">
               <div className="flex items-center gap-1">
-                {/* First page */}
-                {pagination.page > 3 && (
-                  <>
-                    <button
-                      onClick={() => handlePageChange(1)}
-                      className="px-3 py-1.5 text-sm rounded-lg hover:bg-secondary transition-colors"
-                    >
-                      1
-                    </button>
-                    {pagination.page > 4 && (
-                      <span className="px-2 text-muted-foreground">...</span>
-                    )}
-                  </>
-                )}
+                <button
+                  onClick={() => handlePageChange(pagination.page - 1)}
+                  disabled={pagination.page <= 1}
+                  className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
 
-                {/* Page numbers around current */}
-                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                  let pageNum;
-                  if (pagination.totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (pagination.page <= 3) {
-                    pageNum = i + 1;
-                  } else if (pagination.page >= pagination.totalPages - 2) {
-                    pageNum = pagination.totalPages - 4 + i;
-                  } else {
-                    pageNum = pagination.page - 2 + i;
-                  }
+                {/* Mobile: Show current/total */}
+                <div className="flex sm:hidden items-center gap-2 px-3 py-1.5 text-sm">
+                  <span className="font-medium text-foreground">{pagination.page}</span>
+                  <span className="text-muted-foreground">/</span>
+                  <span className="text-muted-foreground">{pagination.totalPages}</span>
+                </div>
 
-                  if (pageNum < 1 || pageNum > pagination.totalPages) return null;
+                {/* Desktop: Show page numbers */}
+                <div className="hidden sm:flex items-center gap-1">
+                  {/* First page */}
+                  {pagination.page > 3 && (
+                    <>
+                      <button
+                        onClick={() => handlePageChange(1)}
+                        className="px-3 py-1.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                      >
+                        1
+                      </button>
+                      {pagination.page > 4 && (
+                        <span className="px-2 text-muted-foreground">...</span>
+                      )}
+                    </>
+                  )}
 
-                  return (
-                    <button
-                      key={pageNum}
-                      onClick={() => handlePageChange(pageNum)}
-                      className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                        pagination.page === pageNum
-                          ? "bg-primary-500 text-white"
-                          : "hover:bg-secondary"
-                      }`}
-                    >
-                      {pageNum}
-                    </button>
-                  );
-                })}
+                  {/* Page numbers around current */}
+                  {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (pagination.totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (pagination.page <= 3) {
+                      pageNum = i + 1;
+                    } else if (pagination.page >= pagination.totalPages - 2) {
+                      pageNum = pagination.totalPages - 4 + i;
+                    } else {
+                      pageNum = pagination.page - 2 + i;
+                    }
 
-                {/* Last page */}
-                {pagination.page < pagination.totalPages - 2 && pagination.totalPages > 5 && (
-                  <>
-                    {pagination.page < pagination.totalPages - 3 && (
-                      <span className="px-2 text-muted-foreground">...</span>
-                    )}
-                    <button
-                      onClick={() => handlePageChange(pagination.totalPages)}
-                      className="px-3 py-1.5 text-sm rounded-lg hover:bg-secondary transition-colors"
-                    >
-                      {pagination.totalPages}
-                    </button>
-                  </>
-                )}
+                    if (pageNum < 1 || pageNum > pagination.totalPages) return null;
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                          pagination.page === pageNum
+                            ? "bg-primary-500 text-white"
+                            : "hover:bg-secondary"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+
+                  {/* Last page */}
+                  {pagination.page < pagination.totalPages - 2 && pagination.totalPages > 5 && (
+                    <>
+                      {pagination.page < pagination.totalPages - 3 && (
+                        <span className="px-2 text-muted-foreground">...</span>
+                      )}
+                      <button
+                        onClick={() => handlePageChange(pagination.totalPages)}
+                        className="px-3 py-1.5 text-sm rounded-lg hover:bg-secondary transition-colors"
+                      >
+                        {pagination.totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(pagination.page + 1)}
+                  disabled={pagination.page >= pagination.totalPages}
+                  className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
               </div>
 
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.totalPages}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              <span className="text-sm text-muted-foreground ml-4">
+              <span className="text-xs sm:text-sm text-muted-foreground">
                 共 {pagination.total} 项
               </span>
             </div>

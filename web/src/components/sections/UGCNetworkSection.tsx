@@ -32,19 +32,35 @@ export default function UGCNetworkSection() {
               {/* Inner orbit ring */}
               <div className="absolute inset-20 border border-dotted border-primary-300 dark:border-primary-700 rounded-full animate-spin-slow opacity-30" style={{ animationDuration: "6s" }} />
 
-              {/* Center - Brand */}
+              {/* Center - Denexus */}
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                 <div className="w-24 h-24 rounded-full bg-gradient-to-br from-accent-500 to-primary-500 flex items-center justify-center shadow-lg animate-pulse-glow">
-                  <span className="text-white font-bold text-lg">Brand</span>
+                  <span className="text-white font-bold text-lg">Denexus</span>
                 </div>
               </div>
 
-              {/* Orbiting Nodes */}
+              {/* Connecting lines (animated) - rendered first so balls appear on top */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <line x1="50" y1="50" x2="50" y2="10" className="stroke-primary-300/40 dark:stroke-primary-600/40" strokeWidth="0.8" strokeDasharray="2,2">
+                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
+                </line>
+                <line x1="50" y1="50" x2="90" y2="50" className="stroke-accent-300/40 dark:stroke-accent-600/40" strokeWidth="0.8" strokeDasharray="2,2">
+                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
+                </line>
+                <line x1="50" y1="50" x2="10" y2="50" className="stroke-purple-300/40 dark:stroke-purple-600/40" strokeWidth="0.8" strokeDasharray="2,2">
+                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
+                </line>
+                <line x1="50" y1="50" x2="50" y2="90" className="stroke-pink-300/40 dark:stroke-pink-600/40" strokeWidth="0.8" strokeDasharray="2,2">
+                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
+                </line>
+              </svg>
+
+              {/* Orbiting Nodes - positioned at 10%/90% to match SVG line endpoints */}
               {[
-                { top: "5%", left: "50%", color: "bg-primary-500", delay: "0s", label: "1" },
-                { top: "50%", left: "95%", color: "bg-accent-500", delay: "0.5s", label: "2" },
-                { top: "50%", left: "5%", color: "bg-purple-500", delay: "1s", label: "3" },
-                { top: "95%", left: "50%", color: "bg-pink-500", delay: "1.5s", label: "4" },
+                { top: "10%", left: "50%", color: "bg-primary-500", delay: "0s", label: "1" },
+                { top: "50%", left: "90%", color: "bg-accent-500", delay: "0.5s", label: "2" },
+                { top: "50%", left: "10%", color: "bg-purple-500", delay: "1s", label: "3" },
+                { top: "90%", left: "50%", color: "bg-pink-500", delay: "1.5s", label: "4" },
               ].map((node, i) => (
                 <div
                   key={i}
@@ -54,27 +70,11 @@ export default function UGCNetworkSection() {
                   {node.label}
                 </div>
               ))}
-
-              {/* Connecting lines (animated) */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                <line x1="50" y1="50" x2="50" y2="5" className="stroke-primary-300/30 dark:stroke-primary-600/30" strokeWidth="0.5" strokeDasharray="2,2">
-                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
-                </line>
-                <line x1="50" y1="50" x2="95" y2="50" className="stroke-accent-300/30 dark:stroke-accent-600/30" strokeWidth="0.5" strokeDasharray="2,2">
-                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
-                </line>
-                <line x1="50" y1="50" x2="5" y2="50" className="stroke-purple-300/30 dark:stroke-purple-600/30" strokeWidth="0.5" strokeDasharray="2,2">
-                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
-                </line>
-                <line x1="50" y1="50" x2="50" y2="95" className="stroke-pink-300/30 dark:stroke-pink-600/30" strokeWidth="0.5" strokeDasharray="2,2">
-                  <animate attributeName="stroke-dashoffset" values="0;4" dur="1s" repeatCount="indefinite" />
-                </line>
-              </svg>
             </div>
           </div>
 
           {/* Content */}
-          <div className="order-1 lg:order-2">
+          <div className="order-1 lg:order-2 min-w-0">
             <div className="tag tag-accent mb-4 group hover:scale-105 transition-transform cursor-default">
               <Globe className="w-3.5 h-3.5 group-hover:animate-spin-slow" />
               {t("tag")}
@@ -97,7 +97,7 @@ export default function UGCNetworkSection() {
                   <div className="icon-box icon-box-accent shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
                     <feature.icon className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-foreground mb-1 group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors">
                       {feature.title}
                     </h3>

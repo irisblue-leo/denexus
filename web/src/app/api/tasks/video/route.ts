@@ -10,6 +10,8 @@ import {
   deleteVideoTask,
   updateVideoTaskStatus,
   createAsset,
+  canCreateNewTask,
+  MAX_CONCURRENT_TASKS,
 } from "@/lib/db";
 import { submitKlingTask, checkKlingTaskStatus, getKlingAspectRatio, calculateKlingCreditsCost } from "@/lib/kling";
 import { uploadToOBS, generateFilePath } from "@/lib/obs";
@@ -168,6 +170,8 @@ async function processVideoTask(
   mode: "std" | "pro",
   creditsCost: number
 ) {
+  const startTime = Date.now();
+
   try {
     // Update status to processing
     await updateVideoTaskStatus(taskId, "processing");
@@ -191,8 +195,9 @@ async function processVideoTask(
 
     // Helper function to save video and create asset
     const saveVideoAsAsset = async (videoUrl: string) => {
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
       const obsResult = await uploadVideoToOBS(videoUrl, taskId, userId);
-      await updateVideoTaskStatus(taskId, "completed", [obsResult.url]);
+      await updateVideoTaskStatus(taskId, "completed", [obsResult.url], undefined, durationSeconds);
 
       // Create asset record
       const assetId = generateId("asset");
@@ -284,6 +289,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Prompt is required" },
         { status: 400 }
+      );
+    }
+
+    // Check concurrent task limit
+    const canCreate = await canCreateNewTask();
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: "Too many tasks in progress", code: "CONCURRENT_LIMIT", maxTasks: MAX_CONCURRENT_TASKS },
+        { status: 429 }
       );
     }
 

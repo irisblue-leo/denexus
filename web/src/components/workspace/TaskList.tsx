@@ -42,6 +42,7 @@ interface Task {
   quality?: string;
   mode?: string;
   error_message?: string;
+  duration_seconds?: number | null;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -271,6 +272,18 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
     return date.toLocaleDateString() + " " + date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) {
+      return `${seconds}s`;
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    if (remainingSeconds === 0) {
+      return `${minutes}m`;
+    }
+    return `${minutes}m ${remainingSeconds}s`;
+  };
+
   const getEmptyState = () => {
     switch (type) {
       case "video":
@@ -340,13 +353,13 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
     {ConfirmDialog}
     <div className="bg-white dark:bg-card rounded-2xl border border-border h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-border gap-2 sm:gap-0">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold text-foreground">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground">
             {listTitle} {totalCount > 0 && `(${totalCount})`}
           </h2>
           {tasks.some((t) => t.status === "pending" || t.status === "processing") && (
-            <span className="text-xs text-muted-foreground animate-pulse">
+            <span className="text-xs text-muted-foreground animate-pulse hidden sm:inline">
               {t("autoRefreshing")}
             </span>
           )}
@@ -356,14 +369,14 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
             <button
               onClick={handleBatchDelete}
               disabled={batchDeleting}
-              className="px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5"
+              className="px-2 sm:px-3 py-1.5 text-xs font-medium text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-1.5"
             >
               {batchDeleting ? (
                 <Loader2 className="w-3 h-3 animate-spin" />
               ) : (
                 <Trash2 className="w-3 h-3" />
               )}
-              {t("batchDelete")} ({selectedTasks.size})
+              <span className="hidden sm:inline">{t("batchDelete")}</span> ({selectedTasks.size})
             </button>
           )}
           <button
@@ -380,7 +393,7 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
 
       {/* Select All */}
       {tasks.length > 0 && (
-        <div className="px-6 py-2 border-b border-border bg-secondary/20">
+        <div className="px-4 sm:px-6 py-2 border-b border-border bg-secondary/20">
           <button
             onClick={toggleSelectAll}
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
@@ -397,21 +410,21 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
 
       {/* Content */}
       {tasks.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-6">
+        <div className="flex-1 flex items-center justify-center p-4 sm:p-6">
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto mb-4 bg-primary-100 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center">
-              <Icon className="w-8 h-8 text-primary-400" />
+            <div className="w-12 sm:w-16 h-12 sm:h-16 mx-auto mb-3 sm:mb-4 bg-primary-100 dark:bg-primary-900/30 rounded-xl sm:rounded-2xl flex items-center justify-center">
+              <Icon className="w-6 sm:w-8 h-6 sm:h-8 text-primary-400" />
             </div>
-            <h3 className="text-lg font-medium text-foreground mb-2">
+            <h3 className="text-base sm:text-lg font-medium text-foreground mb-2">
               {emptyState.title}
             </h3>
-            <p className="text-sm text-primary-600 dark:text-primary-400">
+            <p className="text-xs sm:text-sm text-primary-600 dark:text-primary-400">
               {emptyState.description}
             </p>
           </div>
         </div>
       ) : (
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2">
           {tasks.map((task) => {
             const taskExpanded = isExpanded(task.id);
             const isSelected = selectedTasks.has(task.id);
@@ -457,6 +470,11 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
                     <span className="text-xs font-medium text-foreground">
                       {getStatusText(task.status)}
                     </span>
+                    {task.status === "completed" && task.duration_seconds && (
+                      <span className="text-xs text-muted-foreground">
+                        ({formatDuration(task.duration_seconds)})
+                      </span>
+                    )}
                   </div>
 
                   {/* Prompt Preview */}
@@ -652,9 +670,9 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-6 py-3 border-t border-border flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-3 border-t border-border flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
-            {t("page")} {currentPage} / {totalPages}
+            {currentPage} / {totalPages}
           </div>
           <div className="flex items-center gap-2">
             <button

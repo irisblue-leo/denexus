@@ -107,10 +107,10 @@ export default function VideoToVideoPage() {
   const canSubmit = userCredits >= creditsCost && selectedVideo !== null;
 
   return (
-    <div className="p-6 h-screen flex gap-6">
+    <div className="p-4 md:p-6 min-h-screen flex flex-col lg:flex-row gap-4 md:gap-6">
       {/* Left Form */}
-      <div className="w-[420px] flex-shrink-0 overflow-y-auto">
-        <div className="bg-white dark:bg-card rounded-2xl border border-border p-6 space-y-6">
+      <div className="w-full lg:w-[420px] flex-shrink-0 overflow-y-auto">
+        <div className="bg-white dark:bg-card rounded-2xl border border-border p-4 md:p-6 space-y-4 md:space-y-6">
           {/* Source Video */}
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">
@@ -240,7 +240,7 @@ export default function VideoToVideoPage() {
       </div>
 
       {/* Right Task List */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 min-h-[400px] lg:min-h-0">
         <TaskList type="runway" refreshTrigger={refreshTrigger} />
       </div>
 

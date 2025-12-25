@@ -11,6 +11,8 @@ import {
   createAsset,
   deleteNanoBananaTask,
   deleteNanoBananaTasks,
+  canCreateNewTask,
+  MAX_CONCURRENT_TASKS,
 } from "@/lib/db";
 import { generateNanoBananaImagesDirect } from "@/lib/nano-banana";
 import { uploadBase64ToOBS, uploadFromURLToOBS, generateFilePath } from "@/lib/obs";
@@ -107,6 +109,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Prompt is required" },
         { status: 400 }
+      );
+    }
+
+    // Check concurrent task limit
+    const canCreate = await canCreateNewTask();
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: "Too many tasks in progress", code: "CONCURRENT_LIMIT", maxTasks: MAX_CONCURRENT_TASKS },
+        { status: 429 }
       );
     }
 
@@ -207,6 +218,8 @@ async function processNanoBananaTask(
   quantity: number,
   creditsCost: number
 ) {
+  const startTime = Date.now();
+
   try {
     // Update status to processing
     await updateNanoBananaTaskStatus(taskId, "processing");
@@ -283,7 +296,8 @@ async function processNanoBananaTask(
     }
 
     if (outputUrls.length > 0) {
-      await updateNanoBananaTaskStatus(taskId, "completed", outputUrls);
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
+      await updateNanoBananaTaskStatus(taskId, "completed", outputUrls, undefined, durationSeconds);
     } else {
       await handleTaskFailure(taskId, userId, creditsCost, "Failed to upload generated images");
     }

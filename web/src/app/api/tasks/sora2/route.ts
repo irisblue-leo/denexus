@@ -12,6 +12,8 @@ import {
   deductCreditsWithTransaction,
   refundCredits,
   getSora2TaskById,
+  canCreateNewTask,
+  MAX_CONCURRENT_TASKS,
 } from "@/lib/db";
 import { submitSora2Task, checkSora2TaskStatus } from "@/lib/sora2";
 import { resizeImageFromUrlForSora2 } from "@/lib/image-resize";
@@ -171,6 +173,8 @@ async function processSora2Task(
   creditsCost: number,
   imageUrl?: string
 ) {
+  const startTime = Date.now();
+
   // Select model and validate duration based on API docs:
   // sora-2: supports duration 10, 15
   // sora-2-pro: supports duration 15, 25
@@ -230,8 +234,9 @@ async function processSora2Task(
 
     // Helper function to save video and create asset
     const saveVideoAsAsset = async (videoUrl: string) => {
+      const durationSeconds = Math.round((Date.now() - startTime) / 1000);
       const obsResult = await uploadVideoToOBS(videoUrl, taskId, userId);
-      await updateSora2TaskStatus(taskId, "completed", [obsResult.url]);
+      await updateSora2TaskStatus(taskId, "completed", [obsResult.url], undefined, durationSeconds);
 
       // Create asset record
       const assetId = generateId("asset");
@@ -310,6 +315,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Prompt is required" },
         { status: 400 }
+      );
+    }
+
+    // Check concurrent task limit
+    const canCreate = await canCreateNewTask();
+    if (!canCreate) {
+      return NextResponse.json(
+        { error: "Too many tasks in progress", code: "CONCURRENT_LIMIT", maxTasks: MAX_CONCURRENT_TASKS },
+        { status: 429 }
       );
     }
 
