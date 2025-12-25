@@ -24,6 +24,7 @@ import {
   Settings,
   LogOut,
   FolderOpen,
+  RefreshCw,
 } from "lucide-react";
 import { type Locale } from "@/i18n/config";
 import { useAuth } from "@/contexts/AuthContext";
@@ -71,6 +72,7 @@ export default function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
 
   const aiVideoItems = [
     { href: "/workspace/generate-video", icon: Video, label: t("generateVideo") },
+    { href: "/workspace/video-to-video", icon: RefreshCw, label: t("videoToVideo") },
     { href: "/workspace/sora2", icon: Sparkles, label: t("sora2") },
     { href: "/workspace/nano-banana", icon: Image, label: t("nanoBanana") },
     { href: "/workspace/gemini3-reverse", icon: Lightbulb, label: t("gemini3Reverse") },

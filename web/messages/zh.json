@@ -305,6 +305,18 @@
     "imageRequired": "请至少选择一张图片",
     "selectUpToImages": "可选择最多 {count} 张图片",
     "selectedCount": "已选择 {count}/{max} 张",
-    "maxImagesReached": "已达到最大图片数量"
+    "maxImagesReached": "已达到最大图片数量",
+    "videoToVideo": "视频生视频",
+    "sourceVideo": "源视频",
+    "sourceVideoHint": "选择要转换风格的源视频",
+    "textPromptOptional": "提示词 (可选)",
+    "textPromptHintRunway": "用英文描述想要的视频风格效果，不填则保持原视频内容",
+    "textPromptPlaceholderRunway": "Describe the style transformation you want, e.g.: Transform into anime style...",
+    "structureTransformation": "结构变换强度",
+    "structureTransformationHint": "数值越高，生成视频与原视频差异越大",
+    "lowTransformation": "低变换",
+    "highTransformation": "高变换",
+    "videoRequired": "请选择一个视频",
+    "createFirstRunway": "创建您的第一个视频生视频任务"
   }
 }

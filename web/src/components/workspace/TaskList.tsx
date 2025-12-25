@@ -23,7 +23,7 @@ import {
 import { useConfirm } from "@/components/ui/ConfirmDialog";
 
 interface TaskListProps {
-  type: "video" | "sora2" | "nano-banana" | "gemini3-reverse";
+  type: "video" | "sora2" | "nano-banana" | "gemini3-reverse" | "runway";
   refreshTrigger?: number;
 }
 
@@ -296,6 +296,12 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
           icon: Settings,
           title: t("noReverseRecords"),
           description: t("uploadToReverse"),
+        };
+      case "runway":
+        return {
+          icon: Play,
+          title: t("noTasks"),
+          description: t("createFirstRunway"),
         };
       default:
         return {
@@ -627,7 +633,7 @@ export default function TaskList({ type, refreshTrigger }: TaskListProps) {
                         <div className="flex items-center gap-2 text-xs text-blue-500">
                           <Loader2 className="w-3 h-3 animate-spin" />
                           <span>
-                            {type === "video" || type === "sora2"
+                            {type === "video" || type === "sora2" || type === "runway"
                               ? t("generatingVideo")
                               : type === "gemini3-reverse"
                               ? t("generatingPrompt")

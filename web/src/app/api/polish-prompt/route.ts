@@ -22,7 +22,8 @@ async function imageUrlToBase64(url: string): Promise<string | null> {
   }
 }
 
-const SYSTEM_PROMPT = `你是TikTok电商视频提示词优化专家。根据用户提供的产品图片和简单描述，生成详细的视频生成提示词。
+// System prompt when image is provided
+const SYSTEM_PROMPT_WITH_IMAGE = `你是TikTok电商视频提示词优化专家。根据用户提供的产品图片和简单描述，生成详细的视频生成提示词。
 
 优化要点：
 1. 主体细节：根据图片描述产品的外观、颜色、材质、纹理等细节
@@ -37,6 +38,25 @@ const SYSTEM_PROMPT = `你是TikTok电商视频提示词优化专家。根据用
 
 其他规则：
 - 仔细观察图片中的产品，准确描述其特征
+- 输出自然流畅的描述，不要使用[标签]格式
+- 直接输出优化后的提示词，不要任何解释
+- 控制在200字/words以内`;
+
+// System prompt when no image is provided (text-only optimization)
+const SYSTEM_PROMPT_TEXT_ONLY = `你是视频提示词优化专家。根据用户提供的简单描述，生成更详细、更专业的视频生成提示词。
+
+优化要点：
+1. 丰富画面细节：补充场景、光线、氛围、色调等视觉元素
+2. 添加运镜描述：镜头运动方式（推拉摇移跟）、视角变化
+3. 动作描述：主体的动作、变化、过渡效果
+4. 画面质感：分辨率、风格、专业级别
+
+语言规则（重要）：
+- 如果用户输入是中文，则完全用中文输出
+- 如果用户输入是英文，则完全用英文输出
+- 不要混用中英文
+
+其他规则：
 - 输出自然流畅的描述，不要使用[标签]格式
 - 直接输出优化后的提示词，不要任何解释
 - 控制在200字/words以内`;
@@ -77,7 +97,7 @@ export async function POST(request: NextRequest) {
       if (base64Image) {
         useVisionModel = true;
         // Combine system prompt with user request for vision model
-        const visionPrompt = `${SYSTEM_PROMPT}
+        const visionPrompt = `${SYSTEM_PROMPT_WITH_IMAGE}
 
 用户需求：${prompt}
 
@@ -100,6 +120,7 @@ export async function POST(request: NextRequest) {
         userContent = prompt;
       }
     } else {
+      // No image provided - use text-only optimization
       userContent = prompt;
     }
 
@@ -123,7 +144,7 @@ export async function POST(request: NextRequest) {
           model: "gpt-4o-mini",
           stream: false,
           messages: [
-            { role: "system", content: SYSTEM_PROMPT },
+            { role: "system", content: SYSTEM_PROMPT_TEXT_ONLY },
             { role: "user", content: prompt },
           ],
           temperature: 0.7,

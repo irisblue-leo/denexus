@@ -305,6 +305,18 @@
     "imageRequired": "Please select at least one image",
     "selectUpToImages": "Select up to {count} images",
     "selectedCount": "Selected {count}/{max}",
-    "maxImagesReached": "Maximum images reached"
+    "maxImagesReached": "Maximum images reached",
+    "videoToVideo": "Video to Video",
+    "sourceVideo": "Source Video",
+    "sourceVideoHint": "Select the source video to transform",
+    "textPromptOptional": "Prompt (Optional)",
+    "textPromptHintRunway": "Describe the style transformation in English, leave empty to keep original content",
+    "textPromptPlaceholderRunway": "Describe the style transformation you want, e.g.: Transform into anime style...",
+    "structureTransformation": "Structure Transformation",
+    "structureTransformationHint": "Higher values result in more difference from the original video",
+    "lowTransformation": "Low",
+    "highTransformation": "High",
+    "videoRequired": "Please select a video",
+    "createFirstRunway": "Create your first video-to-video task"
   }
 }

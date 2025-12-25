@@ -113,6 +113,24 @@ export async function initDatabase() {
       )
     `);
 
+    // Create runway_tasks table (Video-to-Video Generation)
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS runway_tasks (
+        id VARCHAR(50) PRIMARY KEY,
+        user_id VARCHAR(50) NOT NULL REFERENCES users(id),
+        status VARCHAR(20) DEFAULT 'pending',
+        source_video_url TEXT NOT NULL,
+        text_prompt TEXT,
+        structure_transformation DECIMAL(3,2) DEFAULT 0.5,
+        credits_cost INTEGER DEFAULT 5,
+        result_url TEXT,
+        error_message TEXT,
+        external_task_id VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create influencer_tasks table (Create Task for influencer cooperation)
     await client.query(`
       CREATE TABLE IF NOT EXISTS influencer_tasks (
@@ -229,6 +247,7 @@ export async function initDatabase() {
     await client.query(`CREATE INDEX IF NOT EXISTS idx_sora2_tasks_user ON sora2_tasks(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_nano_banana_tasks_user ON nano_banana_tasks(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_gemini3_reverse_tasks_user ON gemini3_reverse_tasks(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_runway_tasks_user ON runway_tasks(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_influencer_tasks_user ON influencer_tasks(user_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_influencer_applications_task ON influencer_applications(task_id)`);
     await client.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id)`);
@@ -1128,5 +1147,97 @@ export async function getNanoBananaTaskById(id: string): Promise<DbNanoBananaTas
 
 export async function getGemini3ReverseTaskById(id: string): Promise<DbGemini3ReverseTask | null> {
   const result = await pool.query(`SELECT * FROM gemini3_reverse_tasks WHERE id = $1`, [id]);
+  return result.rows[0] || null;
+}
+
+// ==================== Runway Task Operations ====================
+export interface DbRunwayTask {
+  id: string;
+  user_id: string;
+  status: string;
+  source_video_url: string;
+  text_prompt: string | null;
+  structure_transformation: number;
+  credits_cost: number;
+  result_url: string | null;
+  error_message: string | null;
+  external_task_id: string | null;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export async function createRunwayTask(data: {
+  id: string;
+  userId: string;
+  sourceVideoUrl: string;
+  textPrompt?: string;
+  structureTransformation?: number;
+  creditsCost?: number;
+  externalTaskId?: string;
+}): Promise<DbRunwayTask> {
+  const result = await pool.query(
+    `INSERT INTO runway_tasks (id, user_id, source_video_url, text_prompt, structure_transformation, credits_cost, external_task_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     RETURNING *`,
+    [
+      data.id,
+      data.userId,
+      data.sourceVideoUrl,
+      data.textPrompt || null,
+      data.structureTransformation || 0.5,
+      data.creditsCost || 5,
+      data.externalTaskId || null,
+    ]
+  );
+  return result.rows[0];
+}
+
+export async function getRunwayTasksByUser(userId: string, limit = 20, offset = 0): Promise<DbRunwayTask[]> {
+  const result = await pool.query(
+    `SELECT * FROM runway_tasks WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,
+    [userId, limit, offset]
+  );
+  return result.rows;
+}
+
+export async function getRunwayTaskCount(userId: string): Promise<number> {
+  const result = await pool.query(
+    `SELECT COUNT(*) as count FROM runway_tasks WHERE user_id = $1`,
+    [userId]
+  );
+  return parseInt(result.rows[0].count, 10);
+}
+
+export async function updateRunwayTaskStatus(
+  id: string,
+  status: string,
+  resultUrl?: string,
+  errorMessage?: string,
+  externalTaskId?: string
+): Promise<void> {
+  await pool.query(
+    `UPDATE runway_tasks SET status = $1, result_url = $2, error_message = $3, external_task_id = COALESCE($4, external_task_id), updated_at = CURRENT_TIMESTAMP WHERE id = $5`,
+    [status, resultUrl || null, errorMessage || null, externalTaskId || null, id]
+  );
+}
+
+export async function deleteRunwayTask(id: string, userId: string): Promise<boolean> {
+  const result = await pool.query(
+    `DELETE FROM runway_tasks WHERE id = $1 AND user_id = $2`,
+    [id, userId]
+  );
+  return result.rowCount !== null && result.rowCount > 0;
+}
+
+export async function deleteRunwayTasks(ids: string[], userId: string): Promise<number> {
+  const result = await pool.query(
+    `DELETE FROM runway_tasks WHERE id = ANY($1) AND user_id = $2`,
+    [ids, userId]
+  );
+  return result.rowCount || 0;
+}
+
+export async function getRunwayTaskById(id: string): Promise<DbRunwayTask | null> {
+  const result = await pool.query(`SELECT * FROM runway_tasks WHERE id = $1`, [id]);
   return result.rows[0] || null;
 }
