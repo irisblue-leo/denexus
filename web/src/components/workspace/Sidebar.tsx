@@ -123,16 +123,16 @@ export default function Sidebar({
   const truncatedName = displayName.length > 11 ? displayName.slice(0, 11) + "..." : displayName;
 
   const aiVideoItems = [
-    { href: "/workspace/generate-video", icon: Video, label: t("generateVideo") },
-    { href: "/workspace/video-to-video", icon: RefreshCw, label: t("videoToVideo") },
-    { href: "/workspace/sora2", icon: Sparkles, label: t("sora2") },
-    { href: "/workspace/nano-banana", icon: Image, label: t("nanoBanana") },
-    { href: "/workspace/gemini3-reverse", icon: Lightbulb, label: t("gemini3Reverse") },
+    { href: "/workspace/generate-video", icon: Video, label: t("generateVideo"), hoverClass: "group-hover:animate-wiggle" },
+    { href: "/workspace/video-to-video", icon: RefreshCw, label: t("videoToVideo"), hoverClass: "group-hover:animate-spin-once" },
+    { href: "/workspace/sora2", icon: Sparkles, label: t("sora2"), hoverClass: "group-hover:animate-pulse-scale" },
+    { href: "/workspace/nano-banana", icon: Image, label: t("nanoBanana"), hoverClass: "group-hover:animate-bounce-small" },
+    { href: "/workspace/gemini3-reverse", icon: Lightbulb, label: t("gemini3Reverse"), hoverClass: "group-hover:animate-glow-pulse" },
   ];
 
   const influencerItems = [
-    { href: "/workspace/create-task", icon: Users, label: t("createTask") },
-    { href: "/workspace/my-tasks", icon: CheckSquare, label: t("myTasks") },
+    { href: "/workspace/create-task", icon: Users, label: t("createTask"), hoverClass: "group-hover:animate-wiggle" },
+    { href: "/workspace/my-tasks", icon: CheckSquare, label: t("myTasks"), hoverClass: "group-hover:animate-check" },
   ];
 
   const isActive = (href: string) => pathname === href;
@@ -201,13 +201,13 @@ export default function Sidebar({
                     <Link
                       href={item.href}
                       onClick={handleNavClick}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                      className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                         isActive(item.href)
                           ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                           : "text-foreground hover:bg-secondary"
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
+                      <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
                       <span className="text-sm font-medium truncate">{item.label}</span>
                     </Link>
                   </li>
@@ -228,13 +228,13 @@ export default function Sidebar({
                     <Link
                       href={item.href}
                       onClick={handleNavClick}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                      className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                         isActive(item.href)
                           ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                           : "text-foreground hover:bg-secondary"
                       }`}
                     >
-                      <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
+                      <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
                       <span className="text-sm font-medium truncate">{item.label}</span>
                     </Link>
                   </li>
@@ -248,31 +248,31 @@ export default function Sidebar({
             <Link
               href="/workspace/assets"
               onClick={handleNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
                 isActive("/workspace/assets")
                   ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                   : "text-foreground hover:bg-secondary"
               }`}
             >
-              <FolderOpen className="w-5 h-5 flex-shrink-0" />
+              <FolderOpen className="w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small" />
               <span className="text-sm font-medium">{t("assets")}</span>
             </Link>
 
-            <button className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all w-full">
-              <Headphones className="w-5 h-5 flex-shrink-0" />
+            <button className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all w-full">
+              <Headphones className="w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-wiggle" />
               <span className="text-sm font-medium">{t("contactUs")}</span>
             </button>
 
             <Link
               href="/workspace/buy"
               onClick={handleNavClick}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+              className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
                 isActive("/workspace/buy")
                   ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                   : "text-foreground hover:bg-secondary"
               }`}
             >
-              <ShoppingCart className="w-5 h-5 flex-shrink-0" />
+              <ShoppingCart className="w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small" />
               <span className="text-sm font-medium">{t("buyNow")}</span>
             </Link>
 
@@ -378,14 +378,14 @@ export default function Sidebar({
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                     isActive(item.href)
                       ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                       : "text-foreground hover:bg-secondary"
                   } ${isCollapsed ? "justify-center" : ""}`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
+                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
                   {!isCollapsed && (
                     <span className="text-sm font-medium truncate">{item.label}</span>
                   )}
@@ -409,14 +409,14 @@ export default function Sidebar({
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                  className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                     isActive(item.href)
                       ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
                       : "text-foreground hover:bg-secondary"
                   } ${isCollapsed ? "justify-center" : ""}`}
                   title={isCollapsed ? item.label : undefined}
                 >
-                  <item.icon className={`w-5 h-5 flex-shrink-0 ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
+                  <item.icon className={`w-5 h-5 flex-shrink-0 transition-transform ${item.hoverClass} ${isActive(item.href) ? "text-primary-600 dark:text-primary-400" : ""}`} />
                   {!isCollapsed && (
                     <span className="text-sm font-medium truncate">{item.label}</span>
                   )}
@@ -432,39 +432,39 @@ export default function Sidebar({
         {/* My Assets */}
         <Link
           href="/workspace/assets"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
             isActive("/workspace/assets")
               ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
               : "text-foreground hover:bg-secondary"
           } ${isCollapsed ? "justify-center" : ""}`}
           title={isCollapsed ? t("assets") : undefined}
         >
-          <FolderOpen className={`w-5 h-5 flex-shrink-0 ${isActive("/workspace/assets") ? "text-primary-600 dark:text-primary-400" : ""}`} />
+          <FolderOpen className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small ${isActive("/workspace/assets") ? "text-primary-600 dark:text-primary-400" : ""}`} />
           {!isCollapsed && <span className="text-sm font-medium">{t("assets")}</span>}
         </Link>
 
         {/* Contact Us */}
         <button
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-foreground hover:bg-secondary transition-all w-full ${
             isCollapsed ? "justify-center" : ""
           }`}
           title={isCollapsed ? t("contactUs") : undefined}
         >
-          <Headphones className="w-5 h-5 flex-shrink-0" />
+          <Headphones className="w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-wiggle" />
           {!isCollapsed && <span className="text-sm font-medium">{t("contactUs")}</span>}
         </button>
 
         {/* Buy Now */}
         <Link
           href="/workspace/buy"
-          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
+          className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all w-full ${
             isActive("/workspace/buy")
               ? "bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400"
               : "text-foreground hover:bg-secondary"
           } ${isCollapsed ? "justify-center" : ""}`}
           title={isCollapsed ? t("buyNow") : undefined}
         >
-          <ShoppingCart className={`w-5 h-5 flex-shrink-0 ${isActive("/workspace/buy") ? "text-primary-600 dark:text-primary-400" : ""}`} />
+          <ShoppingCart className={`w-5 h-5 flex-shrink-0 transition-transform group-hover:animate-bounce-small ${isActive("/workspace/buy") ? "text-primary-600 dark:text-primary-400" : ""}`} />
           {!isCollapsed && <span className="text-sm font-medium">{t("buyNow")}</span>}
         </Link>
 

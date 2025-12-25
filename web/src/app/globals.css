@@ -261,3 +261,70 @@
     animation: none !important;
   }
 }
+
+/* Sidebar Icon Hover Animations */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-12deg); }
+  75% { transform: rotate(12deg); }
+}
+
+@keyframes spin-once {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse-scale {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+}
+
+@keyframes bounce-small {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 6px hsl(var(--primary)));
+  }
+}
+
+@keyframes check-bounce {
+  0%, 100% { transform: scale(1); }
+  30% { transform: scale(0.9); }
+  60% { transform: scale(1.15); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-wiggle {
+  animation: wiggle 0.5s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-spin-once {
+  animation: spin-once 0.6s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-pulse-scale {
+  animation: pulse-scale 0.5s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-bounce-small {
+  animation: bounce-small 0.4s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-glow-pulse {
+  animation: glow-pulse 0.6s ease-in-out;
+}
+
+.group:hover .group-hover\:animate-check {
+  animation: check-bounce 0.4s ease-in-out;
+}
