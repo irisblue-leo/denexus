@@ -131,7 +131,7 @@ export default function Sidebar({
   ];
 
   const influencerItems = [
-    { href: "/workspace/create-task", icon: Users, label: t("createTask"), hoverClass: "group-hover:animate-wiggle" },
+    // { href: "/workspace/create-task", icon: Users, label: t("createTask"), hoverClass: "group-hover:animate-wiggle" },
     { href: "/workspace/my-tasks", icon: CheckSquare, label: t("myTasks"), hoverClass: "group-hover:animate-check" },
   ];
 
