@@ -4,6 +4,14 @@ import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 
+// Check if device is mobile
+function isMobileDevice() {
+  if (typeof window === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|webOS|BlackBerry|Opera Mini|IEMobile/i.test(
+    navigator.userAgent
+  ) || window.innerWidth < 768;
+}
+
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -16,8 +24,12 @@ export function ThemeToggle() {
   const handleThemeChange = async () => {
     const newTheme = theme === "dark" ? "light" : "dark";
 
-    // Check if View Transitions API is supported
+    // Skip fancy animation on mobile for better performance
+    const isMobile = isMobileDevice();
+
+    // Check if View Transitions API is supported and not on mobile
     if (
+      !isMobile &&
       typeof document !== "undefined" &&
       "startViewTransition" in document &&
       buttonRef.current
@@ -44,7 +56,7 @@ export function ThemeToggle() {
       });
       await transition.ready;
     } else {
-      // Fallback for browsers without View Transitions API
+      // Simple instant switch for mobile or unsupported browsers
       setTheme(newTheme);
     }
   };

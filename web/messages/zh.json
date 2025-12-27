@@ -250,6 +250,7 @@
     "feature4": "优先处理队列",
     "paymentMethods": "支付方式",
     "wechatPay": "微信支付",
+    "alipay": "支付宝",
     "scanToPay": "扫码支付",
     "useWechatScan": "请使用微信扫描二维码完成支付",
     "orderNo": "订单号",

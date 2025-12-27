@@ -250,6 +250,7 @@
     "feature4": "Priority processing queue",
     "paymentMethods": "Payment Methods",
     "wechatPay": "WeChat Pay",
+    "alipay": "Alipay",
     "scanToPay": "Scan to Pay",
     "useWechatScan": "Use WeChat to scan the QR code to complete payment",
     "orderNo": "Order No",

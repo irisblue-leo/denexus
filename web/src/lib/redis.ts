@@ -42,14 +42,23 @@ if (process.env.NODE_ENV !== "production") {
 
 // Helper to check if Redis is available
 async function ensureConnection(): Promise<boolean> {
+  // Log Redis config (without password)
+  if (!isConnected) {
+    console.log(`[Redis] Attempting connection to ${process.env.REDIS_HOST}:${process.env.REDIS_PORT}, db: ${process.env.REDIS_DB}`);
+  }
+
   if (isConnected && redis.status === "ready") {
     return true;
   }
   try {
-    await redis.connect();
-    isConnected = true;
-    return true;
-  } catch {
+    if (redis.status === "wait" || redis.status === "close" || redis.status === "end") {
+      await redis.connect();
+    }
+    isConnected = redis.status === "ready";
+    console.log(`[Redis] Connection status: ${redis.status}, isConnected: ${isConnected}`);
+    return isConnected;
+  } catch (error) {
+    console.error(`[Redis] Connection failed:`, error);
     isConnected = false;
     return false;
   }
@@ -74,15 +83,18 @@ function cleanupMemoryStore() {
 
 export async function storeVerificationCode(identifier: string, code: string): Promise<void> {
   const connected = await ensureConnection();
+  console.log(`[Redis] storeVerificationCode - connected: ${connected}, identifier: ${identifier}, code: ${code}`);
   if (connected) {
     try {
       await redis.setex(`${VERIFY_CODE_PREFIX}${identifier}`, VERIFY_CODE_TTL, code);
+      console.log(`[Redis] Code stored in Redis for ${identifier}`);
       return;
     } catch (error) {
       console.error("Redis storeVerificationCode error:", error);
     }
   }
-  // Fallback to memory store
+  // Fallback to memory store (WARNING: doesn't work with PM2 cluster mode)
+  console.warn(`[Redis] Falling back to memory store for ${identifier} - this won't work in cluster mode!`);
   cleanupMemoryStore();
   memoryStore.set(`${VERIFY_CODE_PREFIX}${identifier}`, {
     value: code,
@@ -92,9 +104,12 @@ export async function storeVerificationCode(identifier: string, code: string): P
 
 export async function getVerificationCode(identifier: string): Promise<string | null> {
   const connected = await ensureConnection();
+  console.log(`[Redis] getVerificationCode - connected: ${connected}, identifier: ${identifier}`);
   if (connected) {
     try {
-      return await redis.get(`${VERIFY_CODE_PREFIX}${identifier}`);
+      const code = await redis.get(`${VERIFY_CODE_PREFIX}${identifier}`);
+      console.log(`[Redis] Got code from Redis for ${identifier}: ${code}`);
+      return code;
     } catch (error) {
       console.error("Redis getVerificationCode error:", error);
     }
@@ -102,6 +117,7 @@ export async function getVerificationCode(identifier: string): Promise<string | 
   // Fallback to memory store
   const key = `${VERIFY_CODE_PREFIX}${identifier}`;
   const data = memoryStore.get(key);
+  console.log(`[Redis] Memory store lookup for ${identifier}: ${data ? data.value : 'not found'}`);
   if (data && data.expiry > Date.now()) {
     return data.value;
   }
@@ -124,7 +140,9 @@ export async function deleteVerificationCode(identifier: string): Promise<void> 
 }
 
 export async function verifyCode(identifier: string, code: string): Promise<boolean> {
+  console.log(`[Redis] verifyCode - identifier: ${identifier}, input code: ${code}`);
   const storedCode = await getVerificationCode(identifier);
+  console.log(`[Redis] verifyCode - stored code: ${storedCode}, match: ${storedCode === code}`);
   if (!storedCode || storedCode !== code) {
     return false;
   }

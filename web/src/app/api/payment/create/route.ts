@@ -7,6 +7,7 @@ import {
   generateOrderNo,
 } from "@/lib/db";
 import { createNativeOrder, createH5Order } from "@/lib/wechat-pay";
+import { createPagePayment, createWapPayment, isAlipayConfigured } from "@/lib/alipay";
 
 // Get client IP from request
 function getClientIp(request: NextRequest): string {
@@ -34,7 +35,9 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { packageId, paymentMethod = "auto" } = body; // paymentMethod: "auto" | "native" | "h5"
+    const { packageId, paymentMethod = "auto", paymentChannel = "wechat" } = body;
+    // paymentMethod: "auto" | "native" | "h5"
+    // paymentChannel: "wechat" | "alipay"
     const clientIp = getClientIp(request);
     const isMobile = isMobileRequest(request);
 
@@ -74,12 +77,72 @@ export async function POST(request: NextRequest) {
       packageId: pkg.id,
       credits: pkg.credits,
       amount,
-      paymentMethod: "wechat",
+      paymentMethod: paymentChannel,
     });
 
-    // Determine which payment method to use
-    const useH5 = paymentMethod === "h5" || (paymentMethod === "auto" && isMobile);
     const description = `Denexus ${pkg.name} - ${pkg.credits} Credits`;
+
+    // Handle Alipay payment
+    if (paymentChannel === "alipay") {
+      if (!isAlipayConfigured()) {
+        return NextResponse.json(
+          { error: "支付宝支付暂未配置，请使用微信支付" },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const useWap = paymentMethod === "h5" || (paymentMethod === "auto" && isMobile);
+        let paymentUrl: string;
+
+        if (useWap) {
+          paymentUrl = await createWapPayment({
+            outTradeNo: orderNo,
+            totalAmount: amount,
+            subject: description,
+          });
+        } else {
+          paymentUrl = await createPagePayment({
+            outTradeNo: orderNo,
+            totalAmount: amount,
+            subject: description,
+          });
+        }
+
+        return NextResponse.json({
+          success: true,
+          order: {
+            id: order.id,
+            orderNo: order.order_no,
+            credits: order.credits,
+            amount: Number(order.amount),
+            status: order.status,
+            expireAt: order.expire_at,
+          },
+          payment: {
+            type: "alipay",
+            paymentUrl,
+          },
+        });
+      } catch (alipayError) {
+        console.error("Alipay error:", alipayError);
+        return NextResponse.json({
+          success: false,
+          error: "支付宝支付服务暂时不可用，请稍后重试或使用微信支付",
+          order: {
+            id: order.id,
+            orderNo: order.order_no,
+            credits: order.credits,
+            amount: Number(order.amount),
+            status: order.status,
+            expireAt: order.expire_at,
+          },
+        });
+      }
+    }
+
+    // Handle WeChat payment
+    const useH5 = paymentMethod === "h5" || (paymentMethod === "auto" && isMobile);
     const totalAmount = Math.round(amount * 100); // Convert to cents
 
     // Try the primary payment method first

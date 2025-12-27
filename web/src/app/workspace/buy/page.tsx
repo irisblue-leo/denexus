@@ -35,9 +35,10 @@ interface Order {
 }
 
 interface PaymentInfo {
-  type: "native" | "h5";
+  type: "native" | "h5" | "alipay";
   codeUrl?: string;
   h5Url?: string;
+  paymentUrl?: string;
 }
 
 export default function BuyPage() {
@@ -52,6 +53,7 @@ export default function BuyPage() {
   const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
   const [polling, setPolling] = useState(false);
   const [showH5Guide, setShowH5Guide] = useState(false);
+  const [paymentChannel, setPaymentChannel] = useState<"wechat" | "alipay">("wechat");
 
   useEffect(() => {
     fetchPackages();
@@ -82,7 +84,7 @@ export default function BuyPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ packageId: pkg.id }),
+        body: JSON.stringify({ packageId: pkg.id, paymentChannel }),
       });
 
       const data = await response.json();
@@ -91,7 +93,11 @@ export default function BuyPage() {
         setCurrentOrder(data.order);
         setPaymentInfo(data.payment);
 
-        if (data.payment.type === "h5" && data.payment.h5Url) {
+        if (data.payment.type === "alipay" && data.payment.paymentUrl) {
+          // Alipay: redirect to payment page
+          startPolling(data.order.orderNo);
+          window.open(data.payment.paymentUrl, "_blank");
+        } else if (data.payment.type === "h5" && data.payment.h5Url) {
           // H5 payment: redirect to WeChat payment page
           setShowH5Guide(true);
           startPolling(data.order.orderNo);
@@ -161,6 +167,12 @@ export default function BuyPage() {
     }
   };
 
+  const openAlipayPayment = () => {
+    if (paymentInfo?.paymentUrl) {
+      window.open(paymentInfo.paymentUrl, "_blank");
+    }
+  };
+
   const getPackageName = (pkg: Package) => {
     return locale === "zh" ? pkg.name : pkg.nameEn;
   };
@@ -168,13 +180,6 @@ export default function BuyPage() {
   const getPackageDescription = (pkg: Package) => {
     return locale === "zh" ? pkg.description : pkg.descriptionEn;
   };
-
-  const features = [
-    t("feature1"),
-    t("feature2"),
-    t("feature3"),
-    t("feature4"),
-  ];
 
   if (loading) {
     return (
@@ -248,12 +253,22 @@ export default function BuyPage() {
               </div>
 
               <ul className="space-y-3 mb-6">
-                {features.map((feature, index) => (
-                  <li key={index} className="flex items-center gap-2 text-sm text-foreground">
-                    <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
-                    {feature.replace("{credits}", pkg.credits.toString())}
-                  </li>
-                ))}
+                <li className="flex items-center gap-2 text-sm text-foreground">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  {t("feature1", { credits: pkg.credits })}
+                </li>
+                <li className="flex items-center gap-2 text-sm text-foreground">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  {t("feature2")}
+                </li>
+                <li className="flex items-center gap-2 text-sm text-foreground">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  {t("feature3")}
+                </li>
+                <li className="flex items-center gap-2 text-sm text-foreground">
+                  <Check className="w-4 h-4 text-green-500 flex-shrink-0" />
+                  {t("feature4")}
+                </li>
               </ul>
 
               <button
@@ -281,15 +296,41 @@ export default function BuyPage() {
           <h3 className="text-lg font-semibold text-foreground mb-4">
             {t("paymentMethods")}
           </h3>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
-              <svg className="w-6 h-6" viewBox="0 0 24 24" fill="#07C160">
-                <path d="M8.691 11.326c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zm6.618 0c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+          <div className="flex flex-wrap items-center gap-4">
+            <button
+              onClick={() => setPaymentChannel("wechat")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                paymentChannel === "wechat"
+                  ? "bg-green-50 dark:bg-green-900/20 border-green-500 ring-2 ring-green-500/20"
+                  : "bg-secondary/50 border-border hover:border-green-300"
+              }`}
+            >
+              {/* WeChat Pay Icon - Bootstrap Icons */}
+              <svg className="w-6 h-6" viewBox="0 0 16 16" fill="#07C160">
+                <path d="M11.176 14.429c-2.665 0-4.826-1.8-4.826-4.018 0-2.22 2.159-4.02 4.824-4.02S16 8.191 16 10.411c0 1.21-.65 2.301-1.666 3.036a.32.32 0 0 0-.12.366l.218.81a.6.6 0 0 1 .029.117.166.166 0 0 1-.162.162.2.2 0 0 1-.092-.03l-1.057-.61a.5.5 0 0 0-.256-.074.5.5 0 0 0-.142.021 5.7 5.7 0 0 1-1.576.22M9.064 9.542a.647.647 0 1 0 .557-1 .645.645 0 0 0-.646.647.6.6 0 0 0 .09.353Zm3.232.001a.646.646 0 1 0 .546-1 .645.645 0 0 0-.644.644.63.63 0 0 0 .098.356"/>
+                <path d="M0 6.826c0 1.455.781 2.765 2.001 3.656a.385.385 0 0 1 .143.439l-.161.6-.1.373a.5.5 0 0 0-.032.14.19.19 0 0 0 .193.193q.06 0 .111-.029l1.268-.733a.6.6 0 0 1 .308-.088q.088 0 .171.025a6.8 6.8 0 0 0 1.625.26 4.5 4.5 0 0 1-.177-1.251c0-2.936 2.785-5.02 5.824-5.02l.15.002C10.587 3.429 8.392 2 5.796 2 2.596 2 0 4.16 0 6.826m4.632-1.555a.77.77 0 1 1-1.54 0 .77.77 0 0 1 1.54 0m3.875 0a.77.77 0 1 1-1.54 0 .77.77 0 0 1 1.54 0"/>
               </svg>
               <span className="text-sm font-medium text-green-700 dark:text-green-400">
                 {t("wechatPay")}
               </span>
-            </div>
+            </button>
+            <button
+              onClick={() => setPaymentChannel("alipay")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                paymentChannel === "alipay"
+                  ? "bg-blue-50 dark:bg-blue-900/20 border-blue-500 ring-2 ring-blue-500/20"
+                  : "bg-secondary/50 border-border hover:border-blue-300"
+              }`}
+            >
+              {/* Alipay Icon - Bootstrap Icons */}
+              <svg className="w-6 h-6" viewBox="0 0 16 16" fill="#1677FF">
+                <path d="M2.541 0H13.5a2.55 2.55 0 0 1 2.54 2.563v8.297c-.006 0-.531-.046-2.978-.813-.412-.14-.916-.327-1.479-.536q-.456-.17-.957-.353a13 13 0 0 0 1.325-3.373H8.822V4.649h3.831v-.634h-3.83V2.121H7.26c-.274 0-.274.273-.274.273v1.621H3.11v.634h3.875v1.136h-3.2v.634H9.99c-.227.789-.532 1.53-.894 2.202-2.013-.67-4.161-1.212-5.51-.878-.864.214-1.42.597-1.746.998-1.499 1.84-.424 4.633 2.741 4.633 1.872 0 3.675-1.053 5.072-2.787 2.08 1.008 6.37 2.738 6.387 2.745v.105A2.55 2.55 0 0 1 13.5 16H2.541A2.55 2.55 0 0 1 0 13.437V2.563A2.55 2.55 0 0 1 2.541 0"/>
+                <path d="M2.309 9.27c-1.22 1.073-.49 3.034 1.978 3.034 1.434 0 2.868-.925 3.994-2.406-1.602-.789-2.959-1.353-4.425-1.207-.397.04-1.14.217-1.547.58Z"/>
+              </svg>
+              <span className="text-sm font-medium text-blue-700 dark:text-blue-400">
+                {t("alipay")}
+              </span>
+            </button>
           </div>
         </div>
       </div>
@@ -343,10 +384,38 @@ export default function BuyPage() {
                       onClick={openH5Payment}
                       className="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-xl transition-colors flex items-center gap-2 mx-auto"
                     >
-                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8.691 11.326c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zm6.618 0c.36-.08.8-.17 1.24-.17.44 0 .88.09 1.24.17.36.08.62.44.62.81 0 .37-.26.69-.62.77-.36.08-.8.17-1.24.17-.44 0-.88-.09-1.24-.17-.36-.08-.62-.4-.62-.77 0-.37.26-.73.62-.81zM12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z"/>
+                      <svg className="w-5 h-5" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M11.176 14.429c-2.665 0-4.826-1.8-4.826-4.018 0-2.22 2.159-4.02 4.824-4.02S16 8.191 16 10.411c0 1.21-.65 2.301-1.666 3.036a.32.32 0 0 0-.12.366l.218.81a.6.6 0 0 1 .029.117.166.166 0 0 1-.162.162.2.2 0 0 1-.092-.03l-1.057-.61a.5.5 0 0 0-.256-.074.5.5 0 0 0-.142.021 5.7 5.7 0 0 1-1.576.22M9.064 9.542a.647.647 0 1 0 .557-1 .645.645 0 0 0-.646.647.6.6 0 0 0 .09.353Zm3.232.001a.646.646 0 1 0 .546-1 .645.645 0 0 0-.644.644.63.63 0 0 0 .098.356"/>
+                        <path d="M0 6.826c0 1.455.781 2.765 2.001 3.656a.385.385 0 0 1 .143.439l-.161.6-.1.373a.5.5 0 0 0-.032.14.19.19 0 0 0 .193.193q.06 0 .111-.029l1.268-.733a.6.6 0 0 1 .308-.088q.088 0 .171.025a6.8 6.8 0 0 0 1.625.26 4.5 4.5 0 0 1-.177-1.251c0-2.936 2.785-5.02 5.824-5.02l.15.002C10.587 3.429 8.392 2 5.796 2 2.596 2 0 4.16 0 6.826m4.632-1.555a.77.77 0 1 1-1.54 0 .77.77 0 0 1 1.54 0m3.875 0a.77.77 0 1 1-1.54 0 .77.77 0 0 1 1.54 0"/>
                       </svg>
                       {locale === "zh" ? "打开微信支付" : "Open WeChat Pay"}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Alipay Payment: Guide */}
+              {paymentInfo?.type === "alipay" && (
+                <>
+                  <h3 className="text-xl font-bold text-foreground mb-2">
+                    {locale === "zh" ? "支付宝支付" : "Alipay"}
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6">
+                    {locale === "zh"
+                      ? "请在弹出的页面中完成支付，如果没有自动打开，请点击下方按钮"
+                      : "Please complete payment in the popup. If it didn't open, click the button below"}
+                  </p>
+
+                  <div className="mb-6">
+                    <button
+                      onClick={openAlipayPayment}
+                      className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-xl transition-colors flex items-center gap-2 mx-auto"
+                    >
+                      <svg className="w-5 h-5" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M2.541 0H13.5a2.55 2.55 0 0 1 2.54 2.563v8.297c-.006 0-.531-.046-2.978-.813-.412-.14-.916-.327-1.479-.536q-.456-.17-.957-.353a13 13 0 0 0 1.325-3.373H8.822V4.649h3.831v-.634h-3.83V2.121H7.26c-.274 0-.274.273-.274.273v1.621H3.11v.634h3.875v1.136h-3.2v.634H9.99c-.227.789-.532 1.53-.894 2.202-2.013-.67-4.161-1.212-5.51-.878-.864.214-1.42.597-1.746.998-1.499 1.84-.424 4.633 2.741 4.633 1.872 0 3.675-1.053 5.072-2.787 2.08 1.008 6.37 2.738 6.387 2.745v.105A2.55 2.55 0 0 1 13.5 16H2.541A2.55 2.55 0 0 1 0 13.437V2.563A2.55 2.55 0 0 1 2.541 0"/>
+                        <path d="M2.309 9.27c-1.22 1.073-.49 3.034 1.978 3.034 1.434 0 2.868-.925 3.994-2.406-1.602-.789-2.959-1.353-4.425-1.207-.397.04-1.14.217-1.547.58Z"/>
+                      </svg>
+                      {locale === "zh" ? "打开支付宝支付" : "Open Alipay"}
                     </button>
                   </div>
                 </>
