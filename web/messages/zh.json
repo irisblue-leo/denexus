@@ -154,6 +154,33 @@
     "contact": "联系我们",
     "copyright": "© 2025 Denexus 保留所有权利"
   },
+  "showcase": {
+    "scrollHint": "继续滚动探索",
+    "item1Title": "AI智能视频生成",
+    "item1Desc": "上传产品图片，AI自动生成高质量TikTok带货视频，3分钟即可批量产出多个版本",
+    "item2Title": "一键复刻爆款",
+    "item2Desc": "输入任意爆款视频链接，AI深度解析脚本结构，为您的产品自动生成同款风格视频",
+    "item3Title": "3万+本土达人网络",
+    "item3Desc": "精准匹配美国本土带货达人，AI赋能内容共创，打造真实可信的UGC种草内容",
+    "item4Title": "全球多语言支持",
+    "item4Desc": "支持英语、中文等多种语言，一键生成本地化营销内容，轻松触达全球市场",
+    "item5Title": "数据驱动优化",
+    "item5Desc": "基于海量成功案例训练的AI模型，持续优化视频内容，提升转化率50%+"
+  },
+  "howItWorks": {
+    "badge": "简单四步",
+    "title": "快速开始您的AI创作之旅",
+    "subtitle": "从上传素材到获得成片，全程AI驱动，无需专业技能",
+    "stepLabel": "步骤",
+    "step1Title": "上传产品素材",
+    "step1Desc": "上传产品图片或视频素材，支持多种格式，AI自动识别产品特征",
+    "step2Title": "AI智能分析",
+    "step2Desc": "AI深度理解产品卖点，自动生成符合TikTok爆款逻辑的视频脚本",
+    "step3Title": "一键生成视频",
+    "step3Desc": "选择风格和时长，AI自动生成多个版本，支持批量创作",
+    "step4Title": "下载发布",
+    "step4Desc": "预览满意后一键下载高清无水印视频，直接发布到TikTok"
+  },
   "workspace": {
     "aiVideo": "AI 视频",
     "generateVideo": "多图生视频",

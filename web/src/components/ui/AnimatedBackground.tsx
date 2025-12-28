@@ -103,7 +103,7 @@ export function ParticleBackground({ className = "" }: { className?: string }) {
   return (
     <canvas
       ref={canvasRef}
-      className={`absolute inset-0 -z-10 ${className}`}
+      className={`absolute inset-0 ${className}`}
       style={{ opacity: 0.6 }}
     />
   );
@@ -112,7 +112,7 @@ export function ParticleBackground({ className = "" }: { className?: string }) {
 // Floating orbs background
 export function FloatingOrbs() {
   return (
-    <div className="absolute inset-0 -z-10 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden">
       {/* Large animated blobs */}
       <div className="absolute top-0 -left-40 w-80 h-80 bg-primary-400/30 dark:bg-primary-600/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" />
       <div className="absolute top-0 -right-40 w-80 h-80 bg-accent-400/30 dark:bg-accent-600/20 rounded-full mix-blend-multiply dark:mix-blend-screen filter blur-3xl animate-blob" style={{ animationDelay: "2s" }} />
@@ -125,7 +125,7 @@ export function FloatingOrbs() {
 // Grid pattern with gradient mask
 export function GridPattern({ className = "" }: { className?: string }) {
   return (
-    <div className={`absolute inset-0 -z-10 ${className}`}>
+    <div className={`absolute inset-0 ${className}`}>
       <div
         className="absolute inset-0 opacity-30 dark:opacity-20"
         style={{
@@ -145,7 +145,7 @@ export function GridPattern({ className = "" }: { className?: string }) {
 // Animated gradient mesh
 export function GradientMesh({ className = "" }: { className?: string }) {
   return (
-    <div className={`absolute inset-0 -z-10 overflow-hidden ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden ${className}`}>
       <div
         className="absolute inset-0 animate-gradient"
         style={{
@@ -176,7 +176,7 @@ export function Sparkles({ count = 20, className = "" }: { count?: number; class
   }));
 
   return (
-    <div className={`absolute inset-0 -z-10 overflow-hidden pointer-events-none ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}>
       {sparkles.map((sparkle) => (
         <div
           key={sparkle.id}
@@ -198,7 +198,7 @@ export function Sparkles({ count = 20, className = "" }: { count?: number; class
 // Flowing lines animation
 export function FlowingLines({ className = "" }: { className?: string }) {
   return (
-    <div className={`absolute inset-0 -z-10 overflow-hidden ${className}`}>
+    <div className={`absolute inset-0 overflow-hidden ${className}`}>
       <svg
         className="absolute w-full h-full opacity-20 dark:opacity-10"
         viewBox="0 0 100 100"
@@ -231,7 +231,7 @@ export function FlowingLines({ className = "" }: { className?: string }) {
 export function NoiseOverlay({ className = "" }: { className?: string }) {
   return (
     <div
-      className={`absolute inset-0 -z-10 opacity-[0.015] dark:opacity-[0.03] pointer-events-none ${className}`}
+      className={`absolute inset-0 opacity-[0.015] dark:opacity-[0.03] pointer-events-none ${className}`}
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
       }}
@@ -239,16 +239,52 @@ export function NoiseOverlay({ className = "" }: { className?: string }) {
   );
 }
 
+// Meteor shower / shooting stars animation
+export function MeteorShower({ count = 20, className = "" }: { count?: number; className?: string }) {
+  const meteors = Array.from({ length: count }, (_, i) => ({
+    id: i,
+    top: `${Math.random() * 40}%`,
+    left: `${50 + Math.random() * 50}%`,
+    delay: `${Math.random() * 10}s`,
+    duration: `${1 + Math.random() * 2}s`,
+  }));
+
+  return (
+    <div className={`absolute inset-0 z-0 overflow-hidden pointer-events-none ${className}`}>
+      {meteors.map((meteor) => (
+        <div
+          key={meteor.id}
+          className="absolute animate-meteor"
+          style={{
+            top: meteor.top,
+            left: meteor.left,
+            animationDelay: meteor.delay,
+            animationDuration: meteor.duration,
+          }}
+        >
+          <div
+            className="w-[2px] h-[80px] bg-gradient-to-b from-primary-400/80 via-primary-400/40 to-transparent"
+            style={{
+              transform: "rotate(-45deg)",
+              boxShadow: "0 0 6px 1px rgba(139, 92, 246, 0.4)",
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Combined hero background
 export function HeroBackground() {
   return (
-    <>
+    <div className="absolute inset-0 z-0 overflow-hidden">
       <GradientMesh />
       <GridPattern />
       <FloatingOrbs />
       <Sparkles count={30} />
       <NoiseOverlay />
-    </>
+    </div>
   );
 }
 

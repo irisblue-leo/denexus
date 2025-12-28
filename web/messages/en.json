@@ -154,6 +154,33 @@
     "contact": "Contact Us",
     "copyright": "© 2025 Denexus All Rights Reserved"
   },
+  "showcase": {
+    "scrollHint": "Scroll to explore",
+    "item1Title": "AI-Powered Video Generation",
+    "item1Desc": "Upload product images, AI automatically generates high-quality TikTok videos. Batch produce multiple versions in just 3 minutes",
+    "item2Title": "One-Click Viral Clone",
+    "item2Desc": "Input any viral video link, AI deeply analyzes the script structure and automatically generates similar style videos for your products",
+    "item3Title": "30,000+ Native Creator Network",
+    "item3Desc": "Precisely match US native creators, AI-powered content co-creation, creating authentic and trustworthy UGC content",
+    "item4Title": "Global Multi-Language Support",
+    "item4Desc": "Support English, Chinese and more languages, one-click localized marketing content generation for global market reach",
+    "item5Title": "Data-Driven Optimization",
+    "item5Desc": "AI model trained on massive successful cases, continuously optimizing video content, boosting conversion rates by 50%+"
+  },
+  "howItWorks": {
+    "badge": "Four Simple Steps",
+    "title": "Start Your AI Creation Journey",
+    "subtitle": "From uploading materials to final output, fully AI-driven, no professional skills required",
+    "stepLabel": "Step",
+    "step1Title": "Upload Product Materials",
+    "step1Desc": "Upload product images or video materials, supports multiple formats, AI automatically identifies product features",
+    "step2Title": "AI Smart Analysis",
+    "step2Desc": "AI deeply understands product selling points, automatically generates video scripts following TikTok viral logic",
+    "step3Title": "One-Click Video Generation",
+    "step3Desc": "Choose style and duration, AI automatically generates multiple versions, supports batch creation",
+    "step4Title": "Download & Publish",
+    "step4Desc": "Preview and download HD watermark-free videos with one click, directly publish to TikTok"
+  },
   "workspace": {
     "aiVideo": "AI VIDEO",
     "generateVideo": "Multi-Image Video",
