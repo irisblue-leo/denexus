@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { Play, Zap, Users, TrendingUp, Sparkles, LogIn } from "lucide-react";
 import { ScrollReveal } from "@/components/ui/AnimatedSection";
@@ -20,11 +21,12 @@ const HeroGlobe = dynamic(() => import("@/components/3d/HeroGlobe"), {
 export default function HeroSection() {
   const t = useTranslations("hero");
   const tc = useTranslations("common");
+  const router = useRouter();
   const { openAuthPanel, isLoggedIn } = useAuth();
 
   const handleGetStarted = () => {
     if (isLoggedIn) {
-      window.location.href = "/workspace";
+      router.push("/workspace");
     } else {
       openAuthPanel();
     }

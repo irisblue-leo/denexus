@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import createGlobe from "cobe";
 
 // Major city coordinates for markers
@@ -28,27 +28,34 @@ const theme = {
 
 export default function HeroGlobe() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const pointerInteracting = useRef<number | null>(null);
   const pointerInteractionMovement = useRef(0);
   const globeRef = useRef<ReturnType<typeof createGlobe> | null>(null);
+  const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    let width = 0;
     let phi = 0;
+    let destroyed = false;
+
+    // Wait for container to have dimensions
+    if (!containerRef.current || !canvasRef.current) return;
+
+    const width = containerRef.current.offsetWidth;
+    if (width === 0) return;
 
     const onResize = () => {
-      if (canvasRef.current) {
-        width = canvasRef.current.offsetWidth;
+      if (destroyed || !containerRef.current) return;
+      const newWidth = containerRef.current.offsetWidth;
+      if (newWidth > 0 && canvasRef.current) {
+        // cobe handles resize in onRender
       }
     };
 
     window.addEventListener("resize", onResize);
-    onResize();
-
-    if (!canvasRef.current) return;
 
     globeRef.current = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
+      devicePixelRatio: Math.min(2, window.devicePixelRatio),
       width: width * 2,
       height: width * 2,
       phi: 0,
@@ -62,25 +69,32 @@ export default function HeroGlobe() {
       glowColor: theme.glowColor,
       markers: markers,
       onRender: (state) => {
+        if (destroyed) return;
         // Auto rotation
         if (!pointerInteracting.current) {
           phi += 0.003;
         }
         state.phi = phi + pointerInteractionMovement.current;
-        state.width = width * 2;
-        state.height = width * 2;
+        const currentWidth = containerRef.current?.offsetWidth || width;
+        state.width = currentWidth * 2;
+        state.height = currentWidth * 2;
       },
     });
 
+    // Mark as ready after globe is created
+    setIsReady(true);
+
     return () => {
+      destroyed = true;
       globeRef.current?.destroy();
+      globeRef.current = null;
       window.removeEventListener("resize", onResize);
     };
   }, []);
 
   return (
     <div className="w-full h-full flex items-center justify-center">
-      <div className="relative w-full aspect-square max-w-[550px]">
+      <div ref={containerRef} className={`relative w-full aspect-square max-w-[550px] transition-opacity duration-500 ${isReady ? 'opacity-100' : 'opacity-0'}`}>
         {/* Glow effect behind globe */}
         <div
           className="absolute inset-0 rounded-full blur-3xl opacity-25"
